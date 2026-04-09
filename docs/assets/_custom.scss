@@ -1,0 +1,820 @@
+// ── nux: Go-blue accent on GitHub dark ──
+
+// ── Fonts ──
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ── Palette ──
+$nux-accent: #00ADD8;
+$nux-accent-dim: #0090b3;
+$nux-accent-bright: #29c4e8;
+$nux-bg-dark: #0d1117;
+$nux-bg-surface: #161b22;
+$nux-bg-inset: #1c2128;
+$nux-border: #30363d;
+$nux-border-dim: #21262d;
+$nux-text: #e6edf3;
+$nux-text-muted: #8b949e;
+$nux-text-dim: #6e7681;
+$nux-red: #f85149;
+$nux-yellow: #d29922;
+$nux-green: #3fb950;
+
+// Gradient
+$nux-grad-start: $nux-accent;
+$nux-grad-end: #06b6d4; // cyan-500
+
+:root {
+  --book-theme-color: #{$nux-accent};
+  --nux-gradient: linear-gradient(135deg, #{$nux-grad-start}, #{$nux-grad-end});
+}
+
+// ── Base typography ──
+
+body {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+// ── Links ──
+
+.book-page a,
+.book-menu a,
+.markdown a {
+  color: $nux-accent-bright;
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: $nux-accent;
+    text-decoration: underline;
+  }
+}
+
+// ── Code ──
+
+.markdown code {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85em;
+}
+
+.markdown code:not(pre code) {
+  background: rgba($nux-accent, 0.08);
+  border: 1px solid rgba($nux-accent, 0.18);
+  border-radius: 5px;
+  padding: 0.15em 0.45em;
+  font-size: 0.84em;
+}
+
+.markdown pre {
+  border: 1px solid $nux-border-dim;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+// ── Tables ──
+
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+}
+
+.markdown table th {
+  text-transform: uppercase;
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+// ── Sidebar ──
+
+.book-menu nav {
+  font-size: 0.88rem;
+}
+
+// ── Headings ──
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.markdown h1 {
+  border-bottom: 2px solid transparent;
+  border-image: var(--nux-gradient) 1;
+  padding-bottom: 0.3em;
+}
+
+.markdown h2 {
+  border-bottom: 1px solid $nux-border-dim;
+  padding-bottom: 0.2em;
+}
+
+// ══════════════════════════════════════════════
+// ── Landing page: Hero ──
+// ══════════════════════════════════════════════
+
+.nux-hero {
+  text-align: center;
+  padding: 3rem 0 2rem;
+}
+
+.nux-hero__title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 3.2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin: 0 0 0.5rem;
+  border: none !important;
+  padding: 0 !important;
+  background: var(--nux-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nux-hero__tagline {
+  font-size: 1.15rem;
+  color: $nux-text-muted;
+  line-height: 1.6;
+  margin: 0 0 2rem;
+}
+
+.nux-hero__cta {
+  display: inline-flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+// ── Buttons ──
+
+.nux-btn {
+  display: inline-block;
+  padding: 0.65rem 1.4rem;
+  border-radius: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &--primary {
+    background: var(--nux-gradient);
+    color: #fff !important;
+    border: none;
+
+    &:hover {
+      box-shadow: 0 0 20px rgba($nux-accent, 0.35), 0 4px 12px rgba($nux-grad-end, 0.2);
+      transform: translateY(-1px);
+    }
+  }
+
+  &--secondary {
+    background: transparent;
+    border: 1px solid $nux-border;
+    color: $nux-text-muted !important;
+
+    &:hover {
+      border-color: $nux-accent;
+      color: $nux-accent-bright !important;
+    }
+  }
+}
+
+// ── Terminal demo block ──
+
+.nux-terminal {
+  border: 1px solid $nux-border-dim;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 2rem auto;
+  max-width: 640px;
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: rgba($nux-bg-inset, 0.5);
+    border-bottom: 1px solid $nux-border-dim;
+
+    span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot-red    { background: $nux-red; opacity: 0.8; }
+    .dot-yellow { background: $nux-yellow; opacity: 0.8; }
+    .dot-green  { background: $nux-green; opacity: 0.8; }
+  }
+
+  &__body {
+    padding: 1rem 1.25rem;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+
+  .prompt  { color: $nux-accent; }
+  .cmd     { color: $nux-text; }
+  .comment { color: $nux-text-dim; }
+  .output  { color: $nux-text-muted; font-style: italic; }
+}
+
+// ── "Why" narrative block ──
+
+.nux-why {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: $nux-text-muted;
+  max-width: 640px;
+  margin: 1rem auto 0.5rem;
+  text-align: left;
+
+  p {
+    margin: 0 0 0.75rem;
+  }
+
+  p:last-child {
+    color: $nux-text;
+    margin-bottom: 0;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.82em;
+    background: rgba($nux-accent, 0.08);
+    border: 1px solid rgba($nux-accent, 0.18);
+    border-radius: 5px;
+    padding: 0.12em 0.4em;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── Feature cards ──
+// ══════════════════════════════════════════════
+
+.nux-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 2.5rem 0;
+}
+
+.nux-feature {
+  border: 1px solid $nux-border-dim;
+  border-left: 3px solid $nux-accent;
+  border-radius: 10px;
+  padding: 1.25rem 1.25rem 1.25rem 1.1rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba($nux-accent, 0.04), rgba($nux-grad-end, 0.02));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  &:hover {
+    border-color: $nux-accent;
+    border-left-color: $nux-accent-bright;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba($nux-accent, 0.08);
+
+    &::before { opacity: 1; }
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.65rem;
+    background: rgba($nux-accent, 0.1);
+    border: 1px solid rgba($nux-accent, 0.2);
+    position: relative;
+    z-index: 1;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      stroke: $nux-accent-bright;
+      stroke-width: 2;
+    }
+  }
+
+  &__title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  &__desc {
+    font-size: 0.84rem;
+    color: $nux-text-muted;
+    line-height: 1.55;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── Section divider ──
+// ══════════════════════════════════════════════
+
+.nux-section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 3rem 0 0.5rem;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.nux-section-desc {
+  color: $nux-text-muted;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+// ══════════════════════════════════════════════
+// ── Footer version badge ──
+// ══════════════════════════════════════════════
+
+.nux-footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: $nux-text-dim;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid $nux-border-dim;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $nux-accent;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── Syntax highlighting: GitHub Dark ──
+// ══════════════════════════════════════════════
+
+.bg { color: #e6edf3; background-color: #0d1117; }
+.chroma { color: #e6edf3; background-color: #0d1117; }
+.chroma .err { color: #f85149 }
+.chroma .lnlinks { outline: none; text-decoration: none; color: inherit }
+.chroma .lntd { vertical-align: top; padding: 0; margin: 0; border: 0; }
+.chroma .lntable { border-spacing: 0; padding: 0; margin: 0; border: 0; }
+.chroma .hl { background-color: #6e7681 }
+.chroma .lnt { white-space: pre; -webkit-user-select: none; user-select: none; margin-right: 0.4em; padding: 0 0.4em; color: #737679 }
+.chroma .ln { white-space: pre; -webkit-user-select: none; user-select: none; margin-right: 0.4em; padding: 0 0.4em; color: #6e7681 }
+.chroma .line { display: flex; }
+.chroma .k { color: #ff7b72 }
+.chroma .kc { color: #79c0ff }
+.chroma .kd { color: #ff7b72 }
+.chroma .kn { color: #ff7b72 }
+.chroma .kp { color: #79c0ff }
+.chroma .kr { color: #ff7b72 }
+.chroma .kt { color: #ff7b72 }
+.chroma .nc { color: #f0883e; font-weight: bold }
+.chroma .no { color: #79c0ff; font-weight: bold }
+.chroma .nd { color: #d2a8ff; font-weight: bold }
+.chroma .ni { color: #ffa657 }
+.chroma .ne { color: #f0883e; font-weight: bold }
+.chroma .nl { color: #79c0ff; font-weight: bold }
+.chroma .nn { color: #ff7b72 }
+.chroma .py { color: #79c0ff }
+.chroma .nt { color: #7ee787 }
+.chroma .nv { color: #79c0ff }
+.chroma .vc { color: #79c0ff }
+.chroma .vg { color: #79c0ff }
+.chroma .vi { color: #79c0ff }
+.chroma .vm { color: #79c0ff }
+.chroma .nf { color: #d2a8ff; font-weight: bold }
+.chroma .fm { color: #d2a8ff; font-weight: bold }
+.chroma .l { color: #a5d6ff }
+.chroma .ld { color: #79c0ff }
+.chroma .s { color: #a5d6ff }
+.chroma .sa { color: #79c0ff }
+.chroma .sb { color: #a5d6ff }
+.chroma .sc { color: #a5d6ff }
+.chroma .dl { color: #79c0ff }
+.chroma .sd { color: #a5d6ff }
+.chroma .s2 { color: #a5d6ff }
+.chroma .se { color: #79c0ff }
+.chroma .sh { color: #79c0ff }
+.chroma .si { color: #a5d6ff }
+.chroma .sx { color: #a5d6ff }
+.chroma .sr { color: #79c0ff }
+.chroma .s1 { color: #a5d6ff }
+.chroma .ss { color: #a5d6ff }
+.chroma .m { color: #a5d6ff }
+.chroma .mb { color: #a5d6ff }
+.chroma .mf { color: #a5d6ff }
+.chroma .mh { color: #a5d6ff }
+.chroma .mi { color: #a5d6ff }
+.chroma .il { color: #a5d6ff }
+.chroma .mo { color: #a5d6ff }
+.chroma .o { color: #ff7b72; font-weight: bold }
+.chroma .ow { color: #ff7b72; font-weight: bold }
+.chroma .c { color: #8b949e; font-style: italic }
+.chroma .ch { color: #8b949e; font-style: italic }
+.chroma .cm { color: #8b949e; font-style: italic }
+.chroma .c1 { color: #8b949e; font-style: italic }
+.chroma .cs { color: #8b949e; font-weight: bold; font-style: italic }
+.chroma .cp { color: #8b949e; font-weight: bold; font-style: italic }
+.chroma .cpf { color: #8b949e; font-weight: bold; font-style: italic }
+.chroma .gd { color: #ffa198; background-color: #490202 }
+.chroma .ge { font-style: italic }
+.chroma .gr { color: #ffa198 }
+.chroma .gh { color: #79c0ff; font-weight: bold }
+.chroma .gi { color: #56d364; background-color: #0f5323 }
+.chroma .go { color: #8b949e }
+.chroma .gp { color: #8b949e }
+.chroma .gs { font-weight: bold }
+.chroma .gu { color: #79c0ff }
+.chroma .gt { color: #ff7b72 }
+.chroma .gl { text-decoration: underline }
+.chroma .w { color: #6e7681 }
+
+// ══════════════════════════════════════════════
+// ── Light mode ──
+// ══════════════════════════════════════════════
+
+$light-border: #d0d7de;
+$light-bg-code: #f6f8fa;
+$light-text: #1f2328;
+$light-text-muted: #57606a;
+
+@media (prefers-color-scheme: light) {
+  .nux-hero__title {
+    background: linear-gradient(135deg, #{$nux-accent-dim}, #{darken($nux-grad-end, 8%)});
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .nux-feature {
+    border-color: $light-border;
+    border-left-color: $nux-accent-dim;
+    &:hover {
+      border-color: $nux-accent-dim;
+      border-left-color: $nux-accent;
+    }
+    &::before {
+      background: linear-gradient(135deg, rgba($nux-accent-dim, 0.03), rgba($nux-grad-end, 0.02));
+    }
+  }
+
+  .nux-feature__icon {
+    background: rgba($nux-accent-dim, 0.08);
+    border-color: rgba($nux-accent-dim, 0.15);
+  }
+
+  .nux-terminal {
+    border-color: $light-border;
+    &__bar { border-color: $light-border; background: $light-bg-code; }
+    &__body { background: #24292f; }
+  }
+
+  .nux-btn--secondary {
+    border-color: $light-border;
+    color: $light-text !important;
+    &:hover { border-color: $nux-accent; color: $nux-accent-dim !important; }
+  }
+
+  .nux-footer-badge {
+    border-color: $light-border;
+    color: $light-text-muted;
+  }
+
+  .nux-why {
+    color: $light-text-muted;
+    p:last-child { color: $light-text; }
+    code {
+      background: rgba($nux-accent-dim, 0.06);
+      border-color: rgba($nux-accent-dim, 0.12);
+      color: darken($nux-accent-dim, 10%);
+    }
+  }
+
+  .markdown code:not(pre code) {
+    background: rgba($nux-accent-dim, 0.06);
+    border-color: rgba($nux-accent-dim, 0.12);
+    color: darken($nux-accent-dim, 10%);
+  }
+
+  .markdown a,
+  .book-page a {
+    color: $nux-accent-dim;
+  }
+
+  .markdown h1 {
+    border-image: linear-gradient(135deg, #{$nux-accent-dim}, #{darken($nux-grad-end, 8%)}) 1;
+  }
+
+  // GitHub Light syntax
+  .bg { color: inherit; background-color: $light-bg-code; }
+  .chroma { color: inherit; background-color: $light-bg-code; }
+  .chroma .err { color: $light-bg-code; background-color: #82071e }
+  .chroma .hl { background-color: #dedede }
+  .chroma .lnt { color: #7f7f7f }
+  .chroma .ln { color: #7f7f7f }
+  .chroma .k { color: #cf222e }
+  .chroma .kc { color: #cf222e }
+  .chroma .kd { color: #cf222e }
+  .chroma .kn { color: #cf222e }
+  .chroma .kp { color: #cf222e }
+  .chroma .kr { color: #cf222e }
+  .chroma .kt { color: #cf222e }
+  .chroma .na { color: #1f2328 }
+  .chroma .nc { color: #1f2328 }
+  .chroma .no { color: #0550ae }
+  .chroma .nd { color: #0550ae }
+  .chroma .ni { color: #6639ba }
+  .chroma .nl { color: #900; font-weight: bold }
+  .chroma .nn { color: #24292e }
+  .chroma .nx { color: #1f2328 }
+  .chroma .nt { color: #0550ae }
+  .chroma .nb { color: #6639ba }
+  .chroma .bp { color: #6a737d }
+  .chroma .nv { color: #953800 }
+  .chroma .vc { color: #953800 }
+  .chroma .vg { color: #953800 }
+  .chroma .vi { color: #953800 }
+  .chroma .vm { color: #953800 }
+  .chroma .nf { color: #6639ba }
+  .chroma .fm { color: #6639ba }
+  .chroma .ne { color: #1f2328; font-weight: bold }
+  .chroma .py { color: #0550ae }
+  .chroma .s { color: #0a3069 }
+  .chroma .sa { color: #0a3069 }
+  .chroma .sb { color: #0a3069 }
+  .chroma .sc { color: #0a3069 }
+  .chroma .dl { color: #0a3069 }
+  .chroma .sd { color: #0a3069 }
+  .chroma .s2 { color: #0a3069 }
+  .chroma .se { color: #0a3069 }
+  .chroma .sh { color: #0a3069 }
+  .chroma .si { color: #0a3069 }
+  .chroma .sx { color: #0a3069 }
+  .chroma .sr { color: #0a3069 }
+  .chroma .s1 { color: #0a3069 }
+  .chroma .ss { color: #032f62 }
+  .chroma .l { color: #0550ae }
+  .chroma .ld { color: #0550ae }
+  .chroma .m { color: #0550ae }
+  .chroma .mb { color: #0550ae }
+  .chroma .mf { color: #0550ae }
+  .chroma .mh { color: #0550ae }
+  .chroma .mi { color: #0550ae }
+  .chroma .il { color: #0550ae }
+  .chroma .mo { color: #0550ae }
+  .chroma .o { color: #0550ae }
+  .chroma .ow { color: #0550ae }
+  .chroma .p { color: #1f2328 }
+  .chroma .c { color: #57606a }
+  .chroma .ch { color: #57606a }
+  .chroma .cm { color: #57606a }
+  .chroma .c1 { color: #57606a }
+  .chroma .cs { color: #57606a }
+  .chroma .cp { color: #57606a }
+  .chroma .cpf { color: #57606a }
+  .chroma .gd { color: #82071e; background-color: #ffebe9 }
+  .chroma .ge { color: #1f2328 }
+  .chroma .gi { color: #116329; background-color: #dafbe1 }
+  .chroma .go { color: #1f2328 }
+  .chroma .gl { text-decoration: underline }
+  .chroma .w { color: #fff }
+
+  .markdown pre {
+    background: $light-bg-code;
+    border-color: $light-border;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── SVG wordmark in sidebar ──
+// ══════════════════════════════════════════════
+
+.nux-wordmark {
+  height: 28px;
+  width: auto;
+}
+
+// ══════════════════════════════════════════════
+// ── ToC active section indicator ──
+// ══════════════════════════════════════════════
+
+.book-toc nav {
+  a {
+    display: block;
+    padding: 0.2rem 0 0.2rem 0.75rem;
+    border-left: 2px solid transparent;
+    transition: border-color 0.15s ease, color 0.15s ease;
+
+    &.active {
+      border-left-color: $nux-accent;
+      color: $nux-accent-bright;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── Copy button on code blocks ──
+// ══════════════════════════════════════════════
+
+.markdown pre {
+  position: relative;
+
+  .nux-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba($nux-bg-inset, 0.8);
+    border: 1px solid $nux-border-dim;
+    border-radius: 6px;
+    padding: 4px 6px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+    display: flex;
+    align-items: center;
+    z-index: 2;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      stroke: $nux-text-muted;
+      stroke-width: 2;
+    }
+
+    &:hover {
+      background: $nux-bg-surface;
+      svg { stroke: $nux-accent-bright; }
+    }
+
+    &.copied svg { stroke: $nux-green; }
+  }
+
+  &:hover .nux-copy-btn {
+    opacity: 1;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .markdown pre .nux-copy-btn {
+    background: rgba(#fff, 0.85);
+    border-color: $light-border;
+
+    svg { stroke: $light-text-muted; }
+
+    &:hover {
+      background: #fff;
+      svg { stroke: $nux-accent-dim; }
+    }
+
+    &.copied svg { stroke: $nux-accent-dim; }
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── 404 page ──
+// ══════════════════════════════════════════════
+
+.nux-404 {
+  text-align: center;
+  padding: 4rem 1rem;
+
+  &__icon {
+    margin-bottom: 1.5rem;
+
+    svg {
+      width: 64px;
+      height: 64px;
+      stroke: $nux-text-dim;
+      stroke-width: 1.5;
+    }
+  }
+
+  &__title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 5rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    background: var(--nux-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  &__message {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.25rem;
+  }
+
+  &__sub {
+    color: $nux-text-muted;
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+}
+
+// ══════════════════════════════════════════════
+// ── Page fade-in transition ──
+// ══════════════════════════════════════════════
+
+@keyframes nux-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.book-page {
+  animation: nux-fade-in 0.3s ease-out;
+}
+
+// ══════════════════════════════════════════════
+// ── Breadcrumbs ──
+// ══════════════════════════════════════════════
+
+.nux-breadcrumbs {
+  font-size: 0.78rem;
+  color: $nux-text-dim;
+  margin-bottom: 1rem;
+  font-family: 'JetBrains Mono', monospace;
+
+  a {
+    color: $nux-text-muted;
+    text-decoration: none;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: $nux-accent-bright;
+    }
+  }
+
+  &__sep {
+    margin: 0 0.35rem;
+    color: $nux-border;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .nux-breadcrumbs {
+    a { color: $light-text-muted; }
+    a:hover { color: $nux-accent-dim; }
+    &__sep { color: $light-border; }
+  }
+}
+
+// ── Scrollbar ──
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $nux-border-dim;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}

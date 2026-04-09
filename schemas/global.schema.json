@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Drew-Daniels/nux/internal/config/global-config",
+  "$ref": "#/$defs/GlobalConfig",
+  "$defs": {
+    "DefaultSession": {
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Command to run in the first pane (string shorthand form)."
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Window"
+          },
+          "type": "array",
+          "description": "Window definitions for the default session template."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "GlobalConfig": {
+      "properties": {
+        "default_shell": {
+          "type": "string",
+          "description": "Shell to set as tmux default-command for new sessions."
+        },
+        "pane_init": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands run in every pane before pane-specific commands."
+        },
+        "default_session": {
+          "$ref": "#/$defs/DefaultSession",
+          "description": "Template used for projects without a config file. Accepts a layout string or full session definition."
+        },
+        "projects_dir": {
+          "type": "string",
+          "description": "Base directory for project discovery. Supports ~ expansion."
+        },
+        "picker": {
+          "type": "string",
+          "enum": [
+            "fzf",
+            "gum"
+          ],
+          "description": "Fuzzy finder backend for interactive session selection."
+        },
+        "picker_on_bare": {
+          "type": "boolean",
+          "description": "Open picker when nux is run with no arguments outside a project directory."
+        },
+        "zoxide": {
+          "type": "boolean",
+          "description": "Use zoxide for directory discovery as a resolver fallback."
+        },
+        "groups": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object",
+          "description": "Named groups of projects for batch operations (e.g. nux @work)."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Pane": {
+      "properties": {
+        "root": {
+          "type": "string",
+          "description": "Working directory override for this pane."
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to run in this pane."
+        },
+        "split": {
+          "type": "string",
+          "enum": [
+            "horizontal",
+            "vertical"
+          ],
+          "description": "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Window": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Window name shown in the tmux status bar."
+        },
+        "root": {
+          "type": "string",
+          "description": "Working directory override. Relative paths resolve against project root."
+        },
+        "layout": {
+          "type": "string",
+          "description": "Tmux pane layout: even-horizontal"
+        },
+        "command": {
+          "type": "string",
+          "description": "Command for a single-pane window. Mutually exclusive with panes."
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."
+        },
+        "panes": {
+          "items": {
+            "$ref": "#/$defs/Pane"
+          },
+          "type": "array",
+          "description": "Pane definitions. Mutually exclusive with command."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{{- if and .Parent (ne .Kind "home") -}}
+<nav class="nux-breadcrumbs" aria-label="Breadcrumbs">
+  {{- $crumbs := slice -}}
+  {{- $page := . -}}
+  {{- range seq 10 -}}
+    {{- if $page.Parent -}}
+      {{- $crumbs = $crumbs | append $page -}}
+      {{- $page = $page.Parent -}}
+    {{- end -}}
+  {{- end -}}
+  {{- range $crumbs | collections.Reverse -}}
+    <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+    <span class="nux-breadcrumbs__sep">/</span>
+  {{- end -}}
+</nav>
+{{- end -}}

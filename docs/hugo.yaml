@@ -1,0 +1,34 @@
+baseURL: https://drew-daniels.github.io/nux/
+title: nux
+languageCode: en-us
+
+enableGitInfo: true
+
+params:
+  BookToC: true
+  BookSection: docs
+  BookRepo: https://github.com/Drew-Daniels/nux
+  BookEditPath: edit/main/docs/content
+  BookDateFormat: January 2, 2006
+  BookSearch: true
+  BookMenuBundle: /menu
+  BookTheme: auto
+  version: dev
+
+menu:
+  after:
+    - name: GitHub
+      url: https://github.com/Drew-Daniels/nux
+      weight: 10
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+    lineNos: false
+
+module:
+  imports:
+    - path: github.com/alex-shpak/hugo-book

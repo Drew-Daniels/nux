@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Drew-Daniels/nux/internal/config/project-config",
+  "$ref": "#/$defs/ProjectConfig",
+  "$defs": {
+    "Pane": {
+      "properties": {
+        "root": {
+          "type": "string",
+          "description": "Working directory override for this pane."
+        },
+        "command": {
+          "type": "string",
+          "description": "Command to run in this pane."
+        },
+        "split": {
+          "type": "string",
+          "enum": [
+            "horizontal",
+            "vertical"
+          ],
+          "description": "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ProjectConfig": {
+      "properties": {
+        "root": {
+          "type": "string",
+          "description": "Project root directory. Supports ~ expansion and variable interpolation."
+        },
+        "command": {
+          "type": "string",
+          "description": "Command for a single-window session. Mutually exclusive with windows."
+        },
+        "on_start": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands sent to the first pane after the session is created."
+        },
+        "on_ready": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands sent to the first pane once at the end of the initial session build."
+        },
+        "on_detach": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands run each time a client detaches."
+        },
+        "on_stop": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands run when the session is closed."
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Environment variables set for all panes via tmux set-environment."
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Custom variables for {{var}} interpolation in config values."
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Window"
+          },
+          "type": "array",
+          "description": "Window definitions. Mutually exclusive with command."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Window": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Window name shown in the tmux status bar."
+        },
+        "root": {
+          "type": "string",
+          "description": "Working directory override. Relative paths resolve against project root."
+        },
+        "layout": {
+          "type": "string",
+          "description": "Tmux pane layout: even-horizontal"
+        },
+        "command": {
+          "type": "string",
+          "description": "Command for a single-pane window. Mutually exclusive with panes."
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object",
+          "description": "Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."
+        },
+        "panes": {
+          "items": {
+            "$ref": "#/$defs/Pane"
+          },
+          "type": "array",
+          "description": "Pane definitions. Mutually exclusive with command."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    }
+  }
+}

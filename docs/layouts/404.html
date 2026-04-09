@@ -1,0 +1,18 @@
+{{ define "main" }}
+<div class="nux-404">
+  <div class="nux-404__icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+      <path d="M7 10h0"/>
+      <path d="M17 10h0"/>
+      <path d="M9 14c.8.8 2.2.8 3 0 .8.8 2.2.8 3 0"/>
+    </svg>
+  </div>
+  <h1 class="nux-404__title">404</h1>
+  <p class="nux-404__message">Page not found</p>
+  <p class="nux-404__sub">The session you're looking for doesn't exist.</p>
+  <a href="{{ "/" | relURL }}" class="nux-btn nux-btn--primary">Back to docs</a>
+</div>
+{{ end }}

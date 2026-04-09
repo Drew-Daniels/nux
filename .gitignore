@@ -1,0 +1,19 @@
+bin/
+*.out
+dist/
+docs/public/
+*.exe
+.DS_Store
+vendor/
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*~

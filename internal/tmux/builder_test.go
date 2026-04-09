@@ -1,0 +1,932 @@
+package tmux
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/Drew-Daniels/nux/internal/config"
+)
+
+func newTestBuilder(client *MockClient, global *config.GlobalConfig) *Builder {
+	if global == nil {
+		global = &config.GlobalConfig{}
+	}
+	return NewBuilder(client, global)
+}
+
+func TestBuild_WindowsWithPanesAndLayout(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		PaneInit: []string{"source ~/.bashrc"},
+	}
+	builder := newTestBuilder(mock, global)
+
+	cfg := &config.ProjectConfig{
+		Env: map[string]string{"APP_ENV": "dev"},
+		Windows: []config.Window{
+			{
+				Name:   "editor",
+				Layout: "main-vertical",
+				Panes: []config.Pane{
+					{Command: "vim"},
+					{Command: "make watch"},
+				},
+			},
+			{
+				Name: "server",
+				Root: "backend",
+				Panes: []config.Pane{
+					{Command: "go run ."},
+				},
+			},
+		},
+		OnStart: []string{"echo starting"},
+		OnStop:  []string{"echo bye"},
+		OnReady: []string{"echo attached"},
+	}
+
+	err := builder.Build("myproj", cfg, "/home/user/myproj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	assertCalled(t, mock, "SetEnv")
+	assertCalled(t, mock, "SetHook")
+	assertCalled(t, mock, "SplitWindow")
+	assertCalled(t, mock, "SelectLayout")
+	assertCalled(t, mock, "SelectPane")
+	assertCalled(t, mock, "SelectWindow")
+
+	assertCalledWith(t, mock, "NewSession", "myproj")
+	assertCalledWith(t, mock, "SetEnv", "APP_ENV")
+	assertCalledWith(t, mock, "SelectLayout", "main-vertical")
+
+	sendKeysTargets := callsFor(mock, "SendKeys")
+	if len(sendKeysTargets) == 0 {
+		t.Fatal("expected SendKeys calls")
+	}
+
+	foundVim := false
+	foundInit := false
+	for _, c := range sendKeysTargets {
+		if len(c.Args) >= 2 && c.Args[1] == "vim" {
+			foundVim = true
+		}
+		if len(c.Args) >= 2 && c.Args[1] == "source ~/.bashrc" {
+			foundInit = true
+		}
+	}
+	if !foundVim {
+		t.Error("expected SendKeys with 'vim'")
+	}
+	if !foundInit {
+		t.Error("expected SendKeys with pane_init command")
+	}
+}
+
+func TestBuild_CommandOnly(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Command: "npm start",
+	}
+
+	err := builder.Build("webapp", cfg, "/home/user/webapp")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	assertCalledWith(t, mock, "SendKeys", "npm start")
+
+	if mock.Called("NewWindow") {
+		t.Error("command-only build should not create extra windows")
+	}
+	if mock.Called("SplitWindow") {
+		t.Error("command-only build should not split windows")
+	}
+}
+
+func TestBuild_NilConfig_DefaultCommand(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{
+			Command: "htop",
+		},
+		PaneInit: []string{"export TERM=xterm"},
+	}
+	builder := newTestBuilder(mock, global)
+
+	err := builder.Build("scratch", nil, "/tmp/scratch")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	assertCalledWith(t, mock, "SendKeys", "htop")
+	assertCalledWith(t, mock, "SendKeys", "export TERM=xterm")
+}
+
+func TestBuild_NilConfig_DefaultWindows(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{
+			Windows: []config.Window{
+				{
+					Name:   "editor",
+					Layout: "tiled",
+					Panes: []config.Pane{
+						{Command: "nvim"},
+						{},
+					},
+				},
+				{Name: "shell"},
+			},
+		},
+		PaneInit: []string{"cls"},
+	}
+	builder := newTestBuilder(mock, global)
+
+	err := builder.Build("project", nil, "/tmp/project")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	assertCalled(t, mock, "SplitWindow")
+	assertCalledWith(t, mock, "SelectLayout", "tiled")
+	assertCalledWith(t, mock, "SendKeys", "nvim")
+	assertCalledWith(t, mock, "SendKeys", "cls")
+	assertCalled(t, mock, "NewWindow")
+	assertCalled(t, mock, "SelectWindow")
+}
+
+func TestBuild_NilConfig_NoDefaults(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.Build("bare", nil, "/tmp/bare")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	if mock.Called("SendKeys") {
+		t.Error("bare session with no defaults should not send keys")
+	}
+}
+
+func TestBuildEphemeral(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	if err != nil {
+		t.Fatalf("BuildEphemeral returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+	assertCalledWith(t, mock, "SendKeys", "go test ./...")
+
+	if mock.Called("SetEnv") || mock.Called("SetHook") {
+		t.Error("ephemeral session should not set env or hooks")
+	}
+}
+
+func TestStopSession(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.StopSession("myproj")
+	if err != nil {
+		t.Fatalf("StopSession returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "KillSession", "myproj")
+}
+
+func TestStopAll(t *testing.T) {
+	mock := &MockClient{
+		ListSessionsReturn: []SessionInfo{
+			{Name: "a"},
+			{Name: "b"},
+		},
+	}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.StopAll()
+	if err != nil {
+		t.Fatalf("StopAll returned error: %v", err)
+	}
+
+	kills := callsFor(mock, "KillSession")
+	if len(kills) != 2 {
+		t.Fatalf("expected 2 KillSession calls, got %d", len(kills))
+	}
+}
+
+func TestRestartWindow(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	}
+
+	err := builder.RestartWindow("myproj", "server", cfg, "/home/user/myproj")
+	if err != nil {
+		t.Fatalf("RestartWindow returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "KillWindow", "server")
+	assertCalledWith(t, mock, "NewWindow", "server")
+	assertCalledWith(t, mock, "SendKeys", "go run .")
+}
+
+func TestRestartWindow_NotFound(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "editor"},
+		},
+	}
+
+	err := builder.RestartWindow("myproj", "missing", cfg, "/root")
+	if err == nil {
+		t.Fatal("expected error for missing window")
+	}
+}
+
+func TestBuild_DefaultShell(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultShell: "/usr/bin/fish",
+	}
+	builder := newTestBuilder(mock, global)
+
+	cfg := &config.ProjectConfig{
+		Command: "echo hi",
+	}
+
+	err := builder.Build("test", cfg, "/tmp")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SetOption", "default-command")
+	found := false
+	for _, c := range callsFor(mock, "SetOption") {
+		if len(c.Args) >= 3 && c.Args[2] == "/usr/bin/fish" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SetOption with /usr/bin/fish")
+	}
+}
+
+func TestBuild_WindowRootRelative(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name: "api",
+				Root: "services/api",
+				Panes: []config.Pane{
+					{Command: "go run ."},
+				},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/home/user/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sessions := callsFor(mock, "NewSession")
+	if len(sessions) == 0 {
+		t.Fatal("expected NewSession call")
+	}
+	if sessions[0].Args[1] != "/home/user/proj/services/api" {
+		t.Errorf("expected root /home/user/proj/services/api, got %s", sessions[0].Args[1])
+	}
+}
+
+func TestBuild_AdHocLayout_NilConfig(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 4})
+
+	err := builder.Build("scratch", nil, "/tmp/scratch")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 3 {
+		t.Fatalf("expected 3 SplitWindow calls for 4 panes, got %d", len(splits))
+	}
+
+	assertCalledWith(t, mock, "SelectLayout", "tiled")
+	assertCalled(t, mock, "SelectPane")
+}
+
+func TestBuild_AdHocLayout_NilConfig_WithPaneInit(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		PaneInit: []string{"clear"},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "even-horizontal", Panes: 2})
+
+	err := builder.Build("proj", nil, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 1 {
+		t.Fatalf("expected 1 SplitWindow call for 2 panes, got %d", len(splits))
+	}
+
+	assertCalledWith(t, mock, "SelectLayout", "even-horizontal")
+
+	initCalls := 0
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "clear" {
+			initCalls++
+		}
+	}
+	if initCalls != 2 {
+		t.Errorf("expected pane_init sent to 2 panes, got %d", initCalls)
+	}
+}
+
+func TestBuild_AdHocLayout_WithDefaultCommand(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{Command: "htop"},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2})
+
+	err := builder.Build("scratch", nil, "/tmp/scratch")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 1 {
+		t.Fatalf("expected 1 SplitWindow, got %d", len(splits))
+	}
+
+	assertCalledWith(t, mock, "SelectLayout", "tiled")
+	assertCalledWith(t, mock, "SendKeys", "htop")
+}
+
+func TestBuild_AdHocLayout_DoesNotOverrideConfigWindows(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 4})
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:   "editor",
+				Layout: "main-vertical",
+				Panes:  []config.Pane{{Command: "vim"}},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	layouts := callsFor(mock, "SelectLayout")
+	if len(layouts) != 1 {
+		t.Fatalf("expected 1 SelectLayout call, got %d", len(layouts))
+	}
+	if layouts[0].Args[2] != "main-vertical" {
+		t.Errorf("expected config layout main-vertical to be preserved, got %s", layouts[0].Args[2])
+	}
+}
+
+func TestBuild_AdHocLayout_FillsEmptyWindowLayout(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 4})
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:  "editor",
+				Panes: []config.Pane{{Command: "vim"}},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SelectLayout", "tiled")
+}
+
+func TestBuildEphemeral_AdHocLayout(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "even-vertical", Panes: 3})
+
+	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	if err != nil {
+		t.Fatalf("BuildEphemeral returned error: %v", err)
+	}
+
+	assertCalled(t, mock, "NewSession")
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 2 {
+		t.Fatalf("expected 2 SplitWindow calls for 3 panes, got %d", len(splits))
+	}
+
+	assertCalledWith(t, mock, "SelectLayout", "even-vertical")
+	assertCalledWith(t, mock, "SendKeys", "go test ./...")
+	assertCalled(t, mock, "SelectPane")
+}
+
+func TestBuildEphemeral_NoAdHocLayout(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	if err != nil {
+		t.Fatalf("BuildEphemeral returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "go test ./...")
+
+	if mock.Called("SplitWindow") {
+		t.Error("ephemeral without ad-hoc layout should not split windows")
+	}
+	if mock.Called("SelectLayout") {
+		t.Error("ephemeral without ad-hoc layout should not select a layout")
+	}
+}
+
+func TestBuild_AdHocLayout_BaseIndex1(t *testing.T) {
+	mock := &MockClient{BaseIndexReturn: 1, PaneBaseIndexReturn: 1}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 4})
+
+	err := builder.Build("scratch", nil, "/tmp/scratch")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	for _, c := range callsFor(mock, "SplitWindow") {
+		if c.Args[1] != "1" {
+			t.Errorf("SplitWindow should target window 1, got %q", c.Args[1])
+		}
+	}
+	for _, c := range callsFor(mock, "SelectLayout") {
+		if c.Args[1] != "1" {
+			t.Errorf("SelectLayout should target window 1, got %q", c.Args[1])
+		}
+	}
+	for _, c := range callsFor(mock, "SelectPane") {
+		if c.Args[1] != "1" {
+			t.Errorf("SelectPane should target window 1, got %q", c.Args[1])
+		}
+		if c.Args[2] != "1" {
+			t.Errorf("SelectPane should target pane 1, got %q", c.Args[2])
+		}
+	}
+	for _, c := range callsFor(mock, "SendKeys") {
+		if !strings.HasPrefix(c.Args[0], "scratch:1.1") {
+			t.Errorf("SendKeys target should start with scratch:1.1, got %q", c.Args[0])
+		}
+	}
+}
+
+func TestBuildEphemeral_BaseIndex1(t *testing.T) {
+	mock := &MockClient{BaseIndexReturn: 1, PaneBaseIndexReturn: 1}
+	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2})
+
+	err := builder.BuildEphemeral("run", "make test", "/tmp")
+	if err != nil {
+		t.Fatalf("BuildEphemeral returned error: %v", err)
+	}
+
+	for _, c := range callsFor(mock, "SplitWindow") {
+		if c.Args[1] != "1" {
+			t.Errorf("SplitWindow should target window 1, got %q", c.Args[1])
+		}
+	}
+	for _, c := range callsFor(mock, "SendKeys") {
+		if !strings.HasPrefix(c.Args[0], "run:1") {
+			t.Errorf("SendKeys target should start with run:1, got %q", c.Args[0])
+		}
+	}
+}
+
+func TestBuild_Windowed_PaneBaseIndex1(t *testing.T) {
+	mock := &MockClient{PaneBaseIndexReturn: 1}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name: "editor",
+				Panes: []config.Pane{
+					{Command: "vim"},
+					{Command: "make watch"},
+				},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sendKeys := callsFor(mock, "SendKeys")
+	for _, c := range sendKeys {
+		target := c.Args[0]
+		if !strings.Contains(target, ".") {
+			continue
+		}
+		parts := strings.SplitN(target, ".", 2)
+		paneIdx := parts[1]
+		if paneIdx == "0" {
+			t.Errorf("SendKeys targets pane 0 but pane-base-index is 1: %q", target)
+		}
+	}
+
+	selectPanes := callsFor(mock, "SelectPane")
+	for _, c := range selectPanes {
+		if c.Args[2] != "1" {
+			t.Errorf("SelectPane should target pane 1, got %q", c.Args[2])
+		}
+	}
+}
+
+func TestBuild_PaneSplitDirection(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:   "editor",
+				Layout: "main-vertical",
+				Panes: []config.Pane{
+					{Command: "vim"},
+					{Command: "make watch", Split: "horizontal"},
+					{Command: "logs", Split: "vertical"},
+					{Command: "tests"},
+				},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 3 {
+		t.Fatalf("expected 3 SplitWindow calls, got %d", len(splits))
+	}
+
+	opts0 := splits[0].Opts.(SplitWindowOpts)
+	if !opts0.Horizontal {
+		t.Error("pane 1 (split: horizontal) should pass Horizontal: true")
+	}
+
+	opts1 := splits[1].Opts.(SplitWindowOpts)
+	if opts1.Horizontal {
+		t.Error("pane 2 (split: vertical) should pass Horizontal: false")
+	}
+
+	opts2 := splits[2].Opts.(SplitWindowOpts)
+	if opts2.Horizontal {
+		t.Error("pane 3 (no split) should default to Horizontal: false")
+	}
+}
+
+func TestBuild_WindowEnv(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name: "api",
+				Env:  map[string]string{"PORT": "3000", "DEBUG": "true"},
+				Panes: []config.Pane{
+					{Command: "go run ."},
+					{Command: "make watch"},
+				},
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sends := callsFor(mock, "SendKeys")
+	var exports []string
+	for _, c := range sends {
+		if len(c.Args) >= 2 && strings.HasPrefix(c.Args[1], "export ") {
+			exports = append(exports, c.Args[1])
+		}
+	}
+
+	if len(exports) != 4 {
+		t.Fatalf("expected 4 export commands (2 vars x 2 panes), got %d: %v", len(exports), exports)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "export DEBUG=true")
+	assertCalledWith(t, mock, "SendKeys", "export PORT=3000")
+}
+
+func TestBuild_WindowEnv_MultipleWindows(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:    "api",
+				Env:     map[string]string{"PORT": "3000"},
+				Command: "go run .",
+			},
+			{
+				Name:    "frontend",
+				Env:     map[string]string{"PORT": "5173"},
+				Command: "npm run dev",
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sends := callsFor(mock, "SendKeys")
+
+	var apiExport, feExport bool
+	for _, c := range sends {
+		if len(c.Args) < 2 {
+			continue
+		}
+		if strings.Contains(c.Args[0], ":api") && c.Args[1] == "export PORT=3000" {
+			apiExport = true
+		}
+		if strings.Contains(c.Args[0], ":frontend") && c.Args[1] == "export PORT=5173" {
+			feExport = true
+		}
+	}
+
+	if !apiExport {
+		t.Error("expected export PORT=3000 sent to api window")
+	}
+	if !feExport {
+		t.Error("expected export PORT=5173 sent to frontend window")
+	}
+}
+
+func TestBuild_WindowEnv_CommandShorthand(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:    "server",
+				Env:     map[string]string{"PORT": "8080"},
+				Command: "npm start",
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sends := callsFor(mock, "SendKeys")
+	exportIdx := -1
+	cmdIdx := -1
+	for i, c := range sends {
+		if len(c.Args) >= 2 && c.Args[1] == "export PORT=8080" {
+			exportIdx = i
+		}
+		if len(c.Args) >= 2 && c.Args[1] == "npm start" {
+			cmdIdx = i
+		}
+	}
+
+	if exportIdx == -1 {
+		t.Fatal("expected export PORT=8080")
+	}
+	if cmdIdx == -1 {
+		t.Fatal("expected npm start")
+	}
+	if exportIdx >= cmdIdx {
+		t.Error("export should come before the window command")
+	}
+}
+
+func TestBuild_WindowEnv_WithProjectEnv(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Env: map[string]string{"NODE_ENV": "development"},
+		Windows: []config.Window{
+			{
+				Name:    "api",
+				Env:     map[string]string{"PORT": "3000"},
+				Command: "npm start",
+			},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SetEnv", "NODE_ENV")
+	assertCalledWith(t, mock, "SendKeys", "export PORT=3000")
+
+	if !mock.Called("SetEnv") {
+		t.Error("project-level env should use SetEnv")
+	}
+}
+
+func TestRestartSession(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+		},
+	}
+
+	err := builder.RestartSession("myproj", cfg, "/home/user/myproj")
+	if err != nil {
+		t.Fatalf("RestartSession returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "KillSession", "myproj")
+	assertCalled(t, mock, "NewSession")
+	assertCalledWith(t, mock, "SendKeys", "vim")
+}
+
+func TestBuild_OnDetachHooks(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Command:  "echo hi",
+		OnDetach: []string{"echo detached"},
+	}
+
+	err := builder.Build("proj", cfg, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SetHook", "client-detached[0]")
+}
+
+func TestBuild_ErrorFromCreateSession(t *testing.T) {
+	mock := &MockClient{DefaultError: fmt.Errorf("tmux not found")}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.Build("proj", nil, "/tmp/proj")
+	if err == nil {
+		t.Fatal("expected error when session creation fails")
+	}
+}
+
+func TestBuild_WindowRoot_Absolute(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "api", Root: "/opt/api", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/home/user/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sessions := callsFor(mock, "NewSession")
+	if len(sessions) == 0 {
+		t.Fatal("expected NewSession call")
+	}
+	if sessions[0].Args[1] != "/opt/api" {
+		t.Errorf("expected root /opt/api, got %s", sessions[0].Args[1])
+	}
+}
+
+func TestBuild_WindowRoot_Tilde(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "api", Root: "~/code/api", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	}
+
+	err := builder.Build("proj", cfg, "/home/user/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	sessions := callsFor(mock, "NewSession")
+	if len(sessions) == 0 {
+		t.Fatal("expected NewSession call")
+	}
+	if sessions[0].Args[1] != "~/code/api" {
+		t.Errorf("expected root ~/code/api, got %s", sessions[0].Args[1])
+	}
+}
+
+func TestFindWindow_NilConfig(t *testing.T) {
+	_, ok := findWindow(nil, "editor")
+	if ok {
+		t.Error("expected false for nil config")
+	}
+}
+
+func TestWindowRoot_Empty(t *testing.T) {
+	got := windowRoot("", "/home/user/proj")
+	if got != "/home/user/proj" {
+		t.Errorf("windowRoot('', ...) = %q, want /home/user/proj", got)
+	}
+}
+
+// --- helpers ---
+
+func assertCalled(t *testing.T, mock *MockClient, method string) {
+	t.Helper()
+	if !mock.Called(method) {
+		t.Errorf("expected %s to be called", method)
+	}
+}
+
+func assertCalledWith(t *testing.T, mock *MockClient, method, argSubstr string) {
+	t.Helper()
+	for _, c := range mock.Calls {
+		if c.Method != method {
+			continue
+		}
+		for _, a := range c.Args {
+			if a == argSubstr {
+				return
+			}
+		}
+	}
+	t.Errorf("expected %s to be called with arg %q", method, argSubstr)
+}
+
+func callsFor(mock *MockClient, method string) []Call {
+	var result []Call
+	for _, c := range mock.Calls {
+		if c.Method == method {
+			result = append(result, c)
+		}
+	}
+	return result
+}

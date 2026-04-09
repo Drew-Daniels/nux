@@ -1,0 +1,29 @@
+pre-commit:
+  commands:
+    fmt:
+      glob: "*.go"
+      stage_fixed: true
+      run: gofmt -w {staged_files}
+      priority: 1
+    lint:
+      run: golangci-lint run
+      priority: 2
+    gitleaks:
+      run: gitleaks protect --staged --verbose
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:\s.+' {1}
+
+pre-push:
+  commands:
+    test-and-coverage:
+      run: |
+        go test -race -coverprofile=coverage.out ./...
+        coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+        threshold=60
+        if [ "$(echo "$coverage < $threshold" | bc -l)" -eq 1 ]; then
+          echo "Coverage ${coverage}% is below threshold ${threshold}%"
+          exit 1
+        fi

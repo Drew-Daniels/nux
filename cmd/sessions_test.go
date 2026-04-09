@@ -1,0 +1,457 @@
+package cmd
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/Drew-Daniels/nux/internal/config"
+	"github.com/Drew-Daniels/nux/internal/picker"
+	"github.com/Drew-Daniels/nux/internal/tmux"
+)
+
+func TestExpandArgs_PlainNames(t *testing.T) {
+	d := testDeps(t)
+	names, err := expandArgs(d, []string{"blog", "api"})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 2 || names[0] != "blog" || names[1] != "api" {
+		t.Errorf("got %v, want [blog api]", names)
+	}
+}
+
+func TestExpandArgs_Group(t *testing.T) {
+	d := testDeps(t)
+	d.global.Groups = map[string][]string{
+		"work": {"alpha", "bravo"},
+	}
+
+	names, err := expandArgs(d, []string{"@work"})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 2 || names[0] != "alpha" || names[1] != "bravo" {
+		t.Errorf("got %v, want [alpha bravo]", names)
+	}
+}
+
+func TestExpandArgs_GroupNotFound(t *testing.T) {
+	d := testDeps(t)
+	_, err := expandArgs(d, []string{"@missing"})
+	if err == nil {
+		t.Fatal("expected error for missing group")
+	}
+}
+
+func TestExpandArgs_ColonTarget(t *testing.T) {
+	d := testDeps(t)
+	names, err := expandArgs(d, []string{"blog:editor"})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 1 || names[0] != "blog" {
+		t.Errorf("got %v, want [blog]", names)
+	}
+}
+
+func TestExpandArgs_Glob(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("web-api", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{Command: "b"})
+	_ = d.store.Save("other", &config.ProjectConfig{Command: "c"})
+
+	names, err := expandArgs(d, []string{"web+"})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 2 {
+		t.Fatalf("got %v, want 2 web-* matches", names)
+	}
+}
+
+func TestRunSessions_Single(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "vim",
+	})
+
+	err := runSessions(d, []string{"blog"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession to be called")
+	}
+}
+
+func TestRunSessions_SkipsExisting(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "vim"})
+
+	err := runSessions(d, []string{"blog"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	if mock.Called("NewSession") {
+		t.Error("should skip NewSession for existing session")
+	}
+}
+
+func TestRunSessions_WithVarOverrides(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.vars = map[string]string{"greeting": "hello"}
+	_ = d.store.Save("api", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "echo {{greeting}}",
+		Vars:    map[string]string{"greeting": "hi"},
+	})
+
+	err := runSessions(d, []string{"api"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected session to be built")
+	}
+}
+
+func TestRunEphemeral(t *testing.T) {
+	d := testDeps(t)
+	d.run = "go test ./..."
+	d.noAttach = true
+
+	err := runEphemeral(d)
+	if err != nil {
+		t.Fatalf("runEphemeral: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession")
+	}
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "go test ./..." {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SendKeys with ephemeral command")
+	}
+}
+
+func TestTryAutoDetect_InsideProjectsDir(t *testing.T) {
+	d := testDeps(t)
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	result, ok := tryAutoDetect(d)
+	if !ok {
+		t.Fatal("expected auto-detect to succeed")
+	}
+	if result.Name != "blog" {
+		t.Errorf("Name = %q, want blog", result.Name)
+	}
+}
+
+func TestTryAutoDetect_OutsideProjectsDir(t *testing.T) {
+	d := testDeps(t)
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+
+	_, ok := tryAutoDetect(d)
+	if ok {
+		t.Error("expected auto-detect to fail outside projects dir")
+	}
+}
+
+func TestCollectPickerItems(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("blog", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("api", &config.ProjectConfig{Command: "b"})
+	mock := d.client.(*tmux.MockClient)
+	mock.ListSessionsReturn = []tmux.SessionInfo{
+		{Name: "blog"},
+		{Name: "scratch"},
+	}
+
+	items := collectPickerItems(d)
+	if len(items) != 3 {
+		t.Fatalf("expected 3 items (blog, api, scratch), got %d: %v", len(items), items)
+	}
+
+	seen := make(map[string]bool)
+	for _, item := range items {
+		seen[item] = true
+	}
+	if !seen["blog"] || !seen["api"] || !seen["scratch"] {
+		t.Errorf("missing expected items: %v", items)
+	}
+}
+
+func TestRunBareNux_AutoDetect(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession for auto-detected project")
+	}
+}
+
+func TestRunSessions_AttachesLast(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "vim"})
+
+	err := runSessions(d, []string{"blog"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("AttachSession") {
+		t.Error("expected AttachSession for last session")
+	}
+}
+
+func TestRunEphemeral_Attaches(t *testing.T) {
+	d := testDeps(t)
+	d.run = "echo hi"
+
+	err := runEphemeral(d)
+	if err != nil {
+		t.Fatalf("runEphemeral: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("AttachSession") {
+		t.Error("expected AttachSession")
+	}
+}
+
+func TestOpenInEditor(t *testing.T) {
+	d := testDeps(t)
+	d.editor = "echo"
+	err := openInEditor(d, "/tmp/test.yaml")
+	if err != nil {
+		t.Fatalf("openInEditor: %v", err)
+	}
+}
+
+func TestOpenInEditor_NoEditor(t *testing.T) {
+	d := testDeps(t)
+	d.editor = ""
+	err := openInEditor(d, "/tmp/test.yaml")
+	if err != nil {
+		t.Error("expected nil when no editor set")
+	}
+}
+
+func TestOpenInEditor_EditorFailure(t *testing.T) {
+	d := testDeps(t)
+	d.editor = "false"
+	d.execCmd = exec.Command
+
+	err := openInEditor(d, "/tmp/test.yaml")
+	if err == nil {
+		t.Fatal("expected error from failing editor")
+	}
+	if !strings.Contains(err.Error(), "editor failed") {
+		t.Errorf("error = %q, expected 'editor failed'", err.Error())
+	}
+}
+
+type fakePicker struct {
+	choice string
+	called bool
+}
+
+func (f *fakePicker) Pick([]string, string) (string, error) {
+	f.called = true
+	return f.choice, nil
+}
+
+func TestRunBareNux_Picker(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.global.PickerOnBare = true
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+
+	fp := &fakePicker{choice: "blog"}
+	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
+		return fp, nil
+	}
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+	if !fp.called {
+		t.Error("expected picker to be called")
+	}
+}
+
+func TestRunBareNux_NoProjectsNoPicker(t *testing.T) {
+	d := testDeps(t)
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+	d.global.PickerOnBare = true
+
+	err := runBareNux(d)
+	if err == nil {
+		t.Fatal("expected error when no projects found")
+	}
+	if !strings.Contains(err.Error(), "no projects") {
+		t.Errorf("error = %q, expected 'no projects'", err.Error())
+	}
+}
+
+func TestRunBareNux_Help(t *testing.T) {
+	d := testDeps(t)
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+
+	helpCalled := false
+	d.help = func() error { helpCalled = true; return nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+	if !helpCalled {
+		t.Error("expected help to be called")
+	}
+}
+
+func TestRunBareNux_PickerDismissed(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.global.PickerOnBare = true
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+
+	fp := &fakePicker{choice: ""}
+	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
+		return fp, nil
+	}
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+	mock := d.client.(*tmux.MockClient)
+	if mock.Called("NewSession") {
+		t.Error("should not create session when picker is dismissed")
+	}
+}
+
+func TestRunBareNux_PickerError(t *testing.T) {
+	d := testDeps(t)
+	d.global.PickerOnBare = true
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+
+	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
+		return nil, fmt.Errorf("no picker binary")
+	}
+
+	err := runBareNux(d)
+	if err == nil {
+		t.Fatal("expected error from picker creation failure")
+	}
+}
+
+func TestRunBareNux_AutoDetect_Attaches(t *testing.T) {
+	d := testDeps(t)
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("AttachSession") {
+		t.Error("expected AttachSession when noAttach=false")
+	}
+}
+
+func TestRunSessions_BuildError(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.DefaultError = fmt.Errorf("session failed")
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "vim",
+	})
+
+	err := runSessions(d, []string{"blog"})
+	if err == nil {
+		t.Fatal("expected error from build failure")
+	}
+	if !strings.Contains(err.Error(), "building session") {
+		t.Errorf("error = %q, expected 'building session'", err.Error())
+	}
+}
+
+func TestRunSessions_ResolveError(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+
+	err := runSessions(d, []string{"nonexistent"})
+	if err == nil {
+		t.Fatal("expected error from resolve failure")
+	}
+}
+
+func TestRunBareNux_AutoDetect_BuildError(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.DefaultError = fmt.Errorf("create failed")
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	err := runBareNux(d)
+	if err == nil {
+		t.Fatal("expected error from build failure")
+	}
+	if !strings.Contains(err.Error(), "building session") {
+		t.Errorf("error = %q, expected 'building session'", err.Error())
+	}
+}

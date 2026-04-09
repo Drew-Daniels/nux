@@ -1,0 +1,206 @@
+package config
+
+import (
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestValidate_Valid(t *testing.T) {
+	cfg := &ProjectConfig{
+		Root: "~/projects/test",
+		Windows: []Window{
+			{Name: "editor", Layout: "tiled", Panes: []Pane{{Command: "vim"}}},
+			{Name: "shell", Layout: "even-horizontal"},
+		},
+	}
+	if errs := Validate(cfg); len(errs) != 0 {
+		t.Fatalf("expected no errors, got %v", errs)
+	}
+}
+
+func TestValidate_CommandAndWindowsMutuallyExclusive(t *testing.T) {
+	cfg := &ProjectConfig{
+		Command: "vim",
+		Windows: []Window{{Name: "editor"}},
+	}
+	errs := Validate(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for command + windows")
+	}
+	assertContains(t, errs[0].Error(), "mutually exclusive")
+}
+
+func TestValidate_WindowCommandAndPanesMutuallyExclusive(t *testing.T) {
+	cfg := &ProjectConfig{
+		Windows: []Window{
+			{Name: "editor", Command: "vim", Panes: []Pane{{Command: "test"}}},
+		},
+	}
+	errs := Validate(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for window command + panes")
+	}
+	assertContains(t, errs[0].Error(), "mutually exclusive")
+}
+
+func TestValidate_WindowNameRequired(t *testing.T) {
+	cfg := &ProjectConfig{
+		Windows: []Window{{Layout: "tiled"}},
+	}
+	errs := Validate(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for missing window name")
+	}
+	assertContains(t, errs[0].Error(), "name is required")
+}
+
+func TestValidate_InvalidLayout(t *testing.T) {
+	cfg := &ProjectConfig{
+		Windows: []Window{{Name: "editor", Layout: "bogus"}},
+	}
+	errs := Validate(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for invalid layout")
+	}
+	assertContains(t, errs[0].Error(), "invalid layout")
+}
+
+func TestValidate_ValidLayouts(t *testing.T) {
+	layouts := []string{"even-horizontal", "even-vertical", "main-horizontal", "main-vertical", "tiled", ""}
+	for _, l := range layouts {
+		cfg := &ProjectConfig{
+			Windows: []Window{{Name: "w", Layout: l}},
+		}
+		if errs := Validate(cfg); len(errs) != 0 {
+			t.Errorf("layout %q should be valid, got %v", l, errs)
+		}
+	}
+}
+
+func TestValidate_CustomLayout(t *testing.T) {
+	cfg := &ProjectConfig{
+		Windows: []Window{{Name: "w", Layout: "b]cd,159x43,0,0{79x43,0,0,0,79x43,80,0,1}"}},
+	}
+	// Custom tmux layout strings start with a hex dimension and contain commas
+	// Our heuristic checks for a comma at position 4
+	if errs := Validate(cfg); len(errs) != 0 {
+		t.Errorf("custom layout should be valid, got %v", errs)
+	}
+}
+
+func TestValidate_MultipleErrors(t *testing.T) {
+	cfg := &ProjectConfig{
+		Command: "vim",
+		Windows: []Window{
+			{Layout: "bogus"},
+		},
+	}
+	errs := Validate(cfg)
+	if len(errs) < 3 {
+		t.Fatalf("expected at least 3 errors, got %d: %v", len(errs), errs)
+	}
+}
+
+func TestValidate_InvalidPaneSplit(t *testing.T) {
+	cfg := &ProjectConfig{
+		Windows: []Window{
+			{Name: "editor", Panes: []Pane{{Command: "vim", Split: "diagonal"}}},
+		},
+	}
+	errs := Validate(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for invalid split direction")
+	}
+	assertContains(t, errs[0].Error(), "invalid split")
+}
+
+func TestValidate_ValidPaneSplits(t *testing.T) {
+	for _, dir := range []string{"", "horizontal", "vertical"} {
+		cfg := &ProjectConfig{
+			Windows: []Window{
+				{Name: "w", Panes: []Pane{{Split: dir}}},
+			},
+		}
+		if errs := Validate(cfg); len(errs) != 0 {
+			t.Errorf("split %q should be valid, got %v", dir, errs)
+		}
+	}
+}
+
+func TestValidate_CommandOnlyIsValid(t *testing.T) {
+	cfg := &ProjectConfig{
+		Root:    "~/projects/test",
+		Command: "just dev",
+	}
+	if errs := Validate(cfg); len(errs) != 0 {
+		t.Fatalf("expected no errors, got %v", errs)
+	}
+}
+
+func TestValidateAllWith(t *testing.T) {
+	dir := t.TempDir()
+	store := NewProjectStore(dir)
+
+	_ = store.Save("valid", &ProjectConfig{
+		Windows: []Window{{Name: "editor"}},
+	})
+	_ = store.Save("invalid", &ProjectConfig{
+		Command: "vim",
+		Windows: []Window{{Name: "editor"}},
+	})
+
+	results, err := ValidateAllWith(store)
+	if err != nil {
+		t.Fatalf("ValidateAllWith: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+
+	var validResult, invalidResult *ValidationResult
+	for i := range results {
+		switch results[i].Name {
+		case "valid":
+			validResult = &results[i]
+		case "invalid":
+			invalidResult = &results[i]
+		}
+	}
+	if validResult == nil || invalidResult == nil {
+		t.Fatal("expected both valid and invalid results")
+	}
+	if len(validResult.Errors) != 0 {
+		t.Errorf("valid config should have no errors, got %v", validResult.Errors)
+	}
+	if len(invalidResult.Errors) == 0 {
+		t.Error("invalid config should have errors")
+	}
+}
+
+func TestValidateAllWith_LoadError(t *testing.T) {
+	dir := t.TempDir()
+	store := NewProjectStore(dir)
+
+	if err := os.WriteFile(dir+"/broken.yaml", []byte(":\n  :\n  - :\n    bad: ["), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	results, err := ValidateAllWith(store)
+	if err != nil {
+		t.Fatalf("ValidateAllWith: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if len(results[0].Errors) == 0 {
+		t.Error("expected load error to be recorded")
+	}
+}
+
+func assertContains(t *testing.T, s, substr string) {
+	t.Helper()
+	if !strings.Contains(s, substr) {
+		t.Errorf("expected %q to contain %q", s, substr)
+	}
+}

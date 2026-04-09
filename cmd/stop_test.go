@@ -1,0 +1,76 @@
+package cmd
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/Drew-Daniels/nux/internal/config"
+	"github.com/Drew-Daniels/nux/internal/tmux"
+)
+
+func TestRunStopWith(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+
+	if err := runStopWith(d, []string{"blog"}); err != nil {
+		t.Fatalf("runStopWith: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" && len(c.Args) > 0 && c.Args[0] == "blog" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected KillSession with 'blog'")
+	}
+}
+
+func TestRunStopWith_ExpandError(t *testing.T) {
+	d := testDeps(t)
+	err := runStopWith(d, []string{"@missing"})
+	if err == nil {
+		t.Fatal("expected error for missing group")
+	}
+}
+
+func TestRunStopWith_KillError(t *testing.T) {
+	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.DefaultError = fmt.Errorf("kill failed")
+	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+
+	err := runStopWith(d, []string{"blog"})
+	if err == nil {
+		t.Fatal("expected error from KillSession failure")
+	}
+	if !strings.Contains(err.Error(), "stopping session") {
+		t.Errorf("error = %q, expected 'stopping session'", err.Error())
+	}
+}
+
+func TestRunStopAllWith(t *testing.T) {
+	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.ListSessionsReturn = []tmux.SessionInfo{
+		{Name: "a"},
+		{Name: "b"},
+	}
+
+	if err := runStopAllWith(d); err != nil {
+		t.Fatalf("runStopAllWith: %v", err)
+	}
+
+	kills := 0
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" {
+			kills++
+		}
+	}
+	if kills != 2 {
+		t.Errorf("expected 2 KillSession calls, got %d", kills)
+	}
+}

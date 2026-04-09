@@ -1,0 +1,158 @@
+---
+title: Quickstart
+weight: 2
+---
+
+This walkthrough assumes nux is installed and tmux 3.0+ is available. See [Installation]({{< relref "/docs/getting-started/installation" >}}) if you have not set that up yet.
+
+## Global config
+
+Create `~/.config/nux/config.yaml` to configure defaults:
+
+```yaml
+projects_dir: ~/projects
+default_shell: /bin/zsh
+pane_init:
+  - eval "$(direnv hook zsh)"
+default_session: dev
+```
+
+- `projects_dir` - base directory for convention-based project discovery (default: `~/projects`)
+- `default_shell` - shell used for new panes (optional, tmux default if omitted)
+- `pane_init` - commands run in each pane before pane-specific commands (optional)
+- `default_session` - template for projects without a config file; a plain string sets the command for a single-pane session
+
+If you skip the global config entirely, nux uses built-in defaults (`projects_dir: ~/projects`, `picker: fzf`).
+
+## Convention over configuration
+
+If `~/projects/blog` exists, you can start a session with no project file:
+
+```sh
+nux blog
+```
+
+nux resolves the directory under `projects_dir` and applies the `default_session` layout (or creates a bare session if no `default_session` is configured).
+
+## Auto-detect
+
+If you are already inside a project directory, a bare `nux` resolves the current directory automatically:
+
+```sh
+cd ~/projects/blog
+nux
+```
+
+This starts or attaches to the `blog` session without naming it explicitly.
+
+## Project-specific config
+
+Scaffold a config for more control:
+
+```sh
+nux new blog
+```
+
+This creates `~/.config/nux/projects/blog.yaml` and opens it in `$EDITOR`. A minimal example:
+
+```yaml
+windows:
+  - name: editor
+    panes:
+      - nvim
+  - name: shell
+    panes:
+      - ""
+```
+
+Adjust `windows` and `panes` to match how you work.
+
+## Listing projects and sessions
+
+See configured projects and their status:
+
+```sh
+nux list    # or: nux ls
+```
+
+```text
+NAME     STATUS    WINDOWS   UPTIME    CONFIG    ROOT
+blog     running   2         5m        project   ~/projects/blog
+api      -                             project   ~/code/api
+```
+
+See running tmux sessions:
+
+```sh
+nux ps
+```
+
+```text
+NAME     WINDOWS   ATTACHED   UPTIME
+blog     2         yes        5m
+api      3         no         1h 2m
+```
+
+## Starting multiple sessions
+
+Pass multiple project names:
+
+```sh
+nux blog api docs
+```
+
+## Session groups
+
+In `~/.config/nux/config.yaml`, define groups:
+
+```yaml
+groups:
+  work:
+    - blog
+    - api
+    - docs
+```
+
+Start everything in the group:
+
+```sh
+nux @work
+```
+
+## Stopping sessions
+
+```sh
+nux stop blog              # stop one
+nux stop web+              # stop by pattern
+nux stop @work             # stop a group
+nux stop-all               # stop everything
+```
+
+## Restarting after config changes
+
+```sh
+nux restart blog           # full session restart
+nux restart blog:editor    # restart just one window
+```
+
+## Dry-run and diagnostics
+
+Preview what nux would do without executing:
+
+```sh
+nux --dry-run blog
+```
+
+Check your environment:
+
+```sh
+nux doctor
+```
+
+## Ephemeral sessions
+
+Start a throwaway session from any directory, no config needed:
+
+```sh
+nux --run "npm run dev"
+```
