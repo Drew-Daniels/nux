@@ -15,20 +15,17 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
-      - uses: peaceiris/actions-hugo@75d2e84710de30f6ff7268e08f310b60ef14033f # v3
-        with:
-          hugo-version: latest
-          extended: true
+      - run: |
+          wget -qO- https://github.com/gohugoio/hugo/releases/latest/download/hugo_extended_Linux-64bit.tar.gz | sudo tar xz -C /usr/local/bin hugo
+          hugo version
       - run: hugo --minify
         working-directory: docs
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: docs/public
       - id: deployment
