@@ -88,7 +88,7 @@ func (s *DirProjectStore) Save(name string, cfg *ProjectConfig) error {
 		return err
 	}
 	content := append([]byte(ProjectSchemaModeline), data...)
-	return os.WriteFile(s.Path(name), content, 0o644)
+	return os.WriteFile(s.Path(name), content, 0o600)
 }
 
 func (s *DirProjectStore) Delete(name string) error {

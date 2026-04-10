@@ -50,7 +50,7 @@ func runConfigWith(d *deps, cfgDir string) error {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
-	if err := os.WriteFile(cfgPath, config.ScaffoldGlobalConfig(), 0o644); err != nil {
+	if err := os.WriteFile(cfgPath, config.ScaffoldGlobalConfig(), 0o600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
 	}
 
