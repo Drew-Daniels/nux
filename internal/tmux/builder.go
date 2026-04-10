@@ -23,15 +23,26 @@ type Builder struct {
 	adHocLayout   *AdHocLayout
 	baseIndex     int
 	paneBaseIndex int
+	indexResolved bool
 }
 
 func NewBuilder(client Client, global *config.GlobalConfig) *Builder {
 	return &Builder{
-		client:        client,
-		global:        global,
-		baseIndex:     client.BaseIndex(),
-		paneBaseIndex: client.PaneBaseIndex(),
+		client: client,
+		global: global,
 	}
+}
+
+// resolveIndices queries base-index and pane-base-index from the running tmux
+// server exactly once. This is deferred from construction time so that the
+// server has been started (by createDetachedSession) before we query it.
+func (b *Builder) resolveIndices() {
+	if b.indexResolved {
+		return
+	}
+	b.baseIndex = b.client.BaseIndex()
+	b.paneBaseIndex = b.client.PaneBaseIndex()
+	b.indexResolved = true
 }
 
 // SetAdHocLayout configures a layout override for the next Build or
@@ -57,6 +68,7 @@ func (b *Builder) createDetachedSession(name, root, window string) error {
 	}); err != nil {
 		return fmt.Errorf("creating session: %w", err)
 	}
+	b.resolveIndices()
 	return nil
 }
 
@@ -331,6 +343,8 @@ func (b *Builder) RestartSession(name string, cfg *config.ProjectConfig, root st
 }
 
 func (b *Builder) RestartWindow(session, windowName string, cfg *config.ProjectConfig, root string) error {
+	b.resolveIndices()
+
 	w, ok := findWindow(cfg, windowName)
 	if !ok {
 		return fmt.Errorf("window %q not found in config", windowName)

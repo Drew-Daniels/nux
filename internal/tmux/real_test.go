@@ -466,4 +466,7 @@ func TestRunOutput_NonDryRun_Error(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error from failing command")
 	}
+	if !strings.Contains(err.Error(), "err") {
+		t.Errorf("error should include stderr: %v", err)
+	}
 }

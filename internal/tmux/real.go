@@ -1,6 +1,7 @@
 package tmux
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -49,8 +50,19 @@ func (c *RealClient) runOutput(args ...string) (string, error) {
 		_, _ = fmt.Fprintln(c.DryRunOut, "tmux "+strings.Join(args, " "))
 		return "", nil
 	}
-	out, err := c.command(args...).Output()
-	return strings.TrimSpace(string(out)), err
+	cmd := c.command(args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	out := strings.TrimSpace(stdout.String())
+	if err != nil {
+		if msg := strings.TrimSpace(stderr.String()); msg != "" {
+			return "", fmt.Errorf("%s (%w)", msg, err)
+		}
+		return "", err
+	}
+	return out, nil
 }
 
 func (c *RealClient) HasSession(name string) bool {
