@@ -136,6 +136,101 @@ func TestRunRestartWith_Window_Attaches(t *testing.T) {
 	}
 }
 
+func TestRunRestartWith_GlobMulti(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
+	_ = d.store.Save("web-api", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+		},
+	})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+		},
+	})
+
+	if err := runRestartWith(d, []string{"web+"}); err != nil {
+		t.Fatalf("runRestartWith: %v", err)
+	}
+
+	n := 0
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Errorf("expected 2 KillSession calls for web+ expansion, got %d", n)
+	}
+}
+
+func TestRunRestartWith_Group(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
+	_ = d.store.Save("alpha", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+	})
+	_ = d.store.Save("bravo", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+	})
+	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
+
+	if err := runRestartWith(d, []string{"@batch"}); err != nil {
+		t.Fatalf("runRestartWith: %v", err)
+	}
+
+	n := 0
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Errorf("expected 2 KillSession calls for @batch, got %d", n)
+	}
+}
+
+func TestRunRestartWith_Glob_AttachesLast(t *testing.T) {
+	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
+	_ = d.store.Save("web-api", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+		},
+	})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+		},
+	})
+
+	if err := runRestartWith(d, []string{"web+"}); err != nil {
+		t.Fatalf("runRestartWith: %v", err)
+	}
+
+	var lastAttach string
+	for _, c := range mock.Calls {
+		if c.Method == "AttachSession" && len(c.Args) > 0 {
+			lastAttach = c.Args[0]
+		}
+	}
+	if lastAttach != "web-ui" {
+		t.Errorf("expected final AttachSession for web-ui (sorted glob order), got %q", lastAttach)
+	}
+}
+
 func TestRunRestartWith_MultiWindow(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true

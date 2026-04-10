@@ -108,6 +108,64 @@ func TestRunValidateWith_Delegating(t *testing.T) {
 	}
 }
 
+func TestRunValidateWith_Glob(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("web-api", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "editor"}},
+	})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "editor"}},
+	})
+
+	if err := runValidateWith(d, []string{"web+"}); err != nil {
+		t.Fatalf("runValidateWith web+: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if strings.Count(out, "[ok]") != 2 {
+		t.Errorf("expected two [ok] lines, got %q", out)
+	}
+}
+
+func TestRunValidateWith_MultipleNames(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "editor"}},
+	})
+	_ = d.store.Save("api", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "server"}},
+	})
+
+	if err := runValidateWith(d, []string{"blog", "api"}); err != nil {
+		t.Fatalf("runValidateWith: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if strings.Count(out, "[ok]") != 2 {
+		t.Errorf("expected two [ok] lines, got %q", out)
+	}
+}
+
+func TestRunValidateWith_Group(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("alpha", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "editor"}},
+	})
+	_ = d.store.Save("bravo", &config.ProjectConfig{
+		Windows: []config.Window{{Name: "editor"}},
+	})
+	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
+
+	if err := runValidateWith(d, []string{"@batch"}); err != nil {
+		t.Fatalf("runValidateWith @batch: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if strings.Count(out, "[ok]") != 2 {
+		t.Errorf("expected two [ok] lines, got %q", out)
+	}
+}
+
 func TestRunValidateWith_All(t *testing.T) {
 	d := testDeps(t)
 

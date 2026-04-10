@@ -3,17 +3,21 @@ package cmd
 import "github.com/spf13/cobra"
 
 var restartCmd = &cobra.Command{
-	Use:   "restart <session>",
-	Short: "Restart a tmux session",
-	Long: `Stop and start a tmux session, picking up any config changes.
+	Use:   "restart <target> [target ...]",
+	Short: "Restart one or more tmux sessions",
+	Long: `Stop and start tmux session(s), picking up any config changes.
 
-Supports project:window syntax to restart one or more windows (comma-separated)
-without tearing down the rest of the session.`,
+Supports glob patterns with +, group expansion with @, and project:window
+syntax to restart one or more windows (comma-separated) inside a session
+without tearing down the rest.`,
 	Example: `  nux restart blog
+  nux restart blog api
+  nux restart web+
+  nux restart @work
   nux restart blog --var port=9090
   nux restart blog:editor
   nux restart blog:editor,server`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: runRestart,
 }
 
@@ -30,34 +34,37 @@ func runRestart(_ *cobra.Command, args []string) error {
 }
 
 func runRestartWith(d *deps, args []string) error {
-	sa, err := parseSessionToken(args[0])
+	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
 	}
 
-	result, err := d.resolver.Resolve(sa.Project)
-	if err != nil {
-		return err
-	}
+	for i, t := range targets {
+		result, err := d.resolver.Resolve(t.Project)
+		if err != nil {
+			return err
+		}
 
-	if err := applyVarOverrides(d, result.Config); err != nil {
-		return err
-	}
+		if err := applyVarOverrides(d, result.Config); err != nil {
+			return err
+		}
 
-	if sa.Windows != nil {
-		for _, w := range sa.Windows {
-			if err := d.builder.RestartWindow(result.Name, w, result.Config, result.Root); err != nil {
+		if t.Windows != nil {
+			for _, w := range t.Windows {
+				if err := d.builder.RestartWindow(result.Name, w, result.Config, result.Root); err != nil {
+					return err
+				}
+			}
+		} else {
+			if err := d.builder.RestartSession(result.Name, result.Config, result.Root); err != nil {
 				return err
 			}
 		}
-	} else {
-		if err := d.builder.RestartSession(result.Name, result.Config, result.Root); err != nil {
-			return err
-		}
-	}
 
-	if !d.noAttach {
-		return d.client.AttachSession(result.Name)
+		isLast := i == len(targets)-1
+		if !d.noAttach && isLast {
+			return d.client.AttachSession(result.Name)
+		}
 	}
 	return nil
 }

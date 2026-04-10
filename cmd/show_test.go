@@ -104,6 +104,52 @@ func TestRunShowWith_Raw_NotFound(t *testing.T) {
 	}
 }
 
+func TestRunShowWith_GlobMultiDoc(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("web-api", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "a",
+	})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "b",
+	})
+
+	if err := runShowWith(d, []string{"web+"}); err != nil {
+		t.Fatalf("runShowWith: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if strings.Count(out, "---\n") != 1 {
+		t.Errorf("expected exactly one YAML document separator for 2 projects, got %q", out)
+	}
+	if !strings.Contains(out, "web-api") || !strings.Contains(out, "web-ui") {
+		t.Errorf("expected both project names in output, got %q", out)
+	}
+}
+
+func TestRunShowWith_Group(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("alpha", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "x",
+	})
+	_ = d.store.Save("bravo", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "y",
+	})
+	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
+
+	if err := runShowWith(d, []string{"@batch"}); err != nil {
+		t.Fatalf("runShowWith: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if strings.Count(out, "---\n") != 1 {
+		t.Errorf("expected one separator for 2 group members, got %q", out)
+	}
+}
+
 func TestRunShowWith_WithVarOverrides(t *testing.T) {
 	d := testDeps(t)
 	d.vars = map[string]string{"port": "9090"}

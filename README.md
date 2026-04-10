@@ -18,7 +18,7 @@ nux manages tmux sessions declaratively through project configs, with a unified 
 - **Zoxide integration** - smart directory discovery as a resolver fallback
 - **Selective windows** - start or restart only the windows you name (`nux blog:editor`, `nux blog:editor,server`, `nux restart blog:editor`)
 - **Pane split direction** - control whether panes split horizontally or vertically per-pane in config
-- **Config inspector** - `nux show` prints the fully resolved config after interpolation and variable expansion
+- **Config inspector** - `nux show` prints the fully resolved config after interpolation and variable expansion (multiple targets, globs, and groups supported)
 - **Dry-run mode** - preview tmux commands without executing
 - **JSON schemas** - editor intellisense for config files via yaml-language-server
 - **Doctor command** - environment validation with actionable fix suggestions
@@ -80,6 +80,8 @@ nux stop-all
 
 # Restart a session (picks up config changes)
 nux restart blog
+nux restart web+
+nux restart @work
 
 # Restart just one window
 nux restart blog:editor
@@ -93,7 +95,7 @@ nux list
 # Show running sessions
 nux ps
 
-# Print resolved config for a project
+# Print resolved config for a project (or several: nux show web+)
 nux show blog
 ```
 
@@ -167,6 +169,7 @@ nux edit blog          # edit existing config
 nux delete blog        # delete config (with confirmation)
 nux validate           # validate all configs
 nux validate blog      # validate a specific config
+nux validate web+      # validate every matching config
 nux show blog          # print resolved config after interpolation
 ```
 

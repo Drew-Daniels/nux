@@ -13,16 +13,16 @@ nux provides subcommands for managing sessions, projects, and your environment. 
 | `nux [names...]` | Start or attach to sessions |
 | [`nux stop`]({{< relref "stop" >}}) | Stop sessions by name, pattern, or group |
 | `nux stop-all` | Stop every running tmux session |
-| [`nux restart`]({{< relref "restart" >}}) | Restart a session or a single window |
+| [`nux restart`]({{< relref "restart" >}}) | Restart session(s) or specific windows (patterns and groups) |
 | [`nux list`]({{< relref "list" >}}) / `nux ls` | List configured projects and their status |
 | [`nux ps`]({{< relref "ps" >}}) | Show running tmux sessions |
-| [`nux show`]({{< relref "show" >}}) | Print resolved config for a project |
+| [`nux show`]({{< relref "show" >}}) | Print resolved config for one or more projects |
 | [`nux config`]({{< relref "config" >}}) | Open or create the global config file |
 | [`nux new`]({{< relref "new" >}}) | Create a new project config file |
 | [`nux edit`]({{< relref "edit" >}}) | Open a project config in `$EDITOR` |
 | [`nux delete`]({{< relref "delete" >}}) / `nux del` | Delete one or more project configs |
 | [`nux reset`]({{< relref "reset" >}}) | Remove the global config and start fresh |
-| [`nux validate`]({{< relref "validate" >}}) | Validate project configs for structural errors |
+| [`nux validate`]({{< relref "validate" >}}) | Validate project configs (all, by name, pattern, or group) |
 | [`nux doctor`]({{< relref "doctor" >}}) | Run environment diagnostics |
 | [`nux completions`]({{< relref "completions" >}}) | Generate shell completions |
 | [`nux version`]({{< relref "version" >}}) | Print version and build info |

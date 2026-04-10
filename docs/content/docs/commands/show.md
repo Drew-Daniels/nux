@@ -6,14 +6,16 @@ weight: 3
 ## Usage
 
 ```text
-nux show <project>
+nux show <target> [target ...]
 ```
 
 ## Description
 
-Prints the fully resolved config for a project as YAML. The output reflects the state after interpolation (`{{var}}` substitution), environment expansion (`${VAR}`), and root resolution - exactly what nux would use to build the session.
+Prints the fully resolved config for one or more projects as YAML. The output reflects the state after interpolation (`{{var}}` substitution), environment expansion (`${VAR}`), and root resolution - exactly what nux would use to build the session.
 
-If the project has no config file (resolved via `projects_dir` or zoxide), nux prints the session name, resolved root, and config source without a `config` section.
+Targets support **glob patterns** (`+`), **`@group`** expansion, and multiple space-separated names. Multiple projects are written as a **YAML stream**: one document per project, separated by a `---` line.
+
+If a project has no config file (resolved via `projects_dir` or zoxide), nux prints the session name, resolved root, and config source without a `config` section.
 
 ## Flags
 
@@ -36,6 +38,10 @@ If the project has no config file (resolved via `projects_dir` or zoxide), nux p
 ```sh
 # Show resolved config for a project
 nux show blog
+
+# Several projects (YAML stream)
+nux show web+
+nux show @work
 ```
 
 ```yaml
@@ -78,5 +84,5 @@ nux show blog --raw
 - This command never starts or attaches to a session. It is read-only.
 - Useful for debugging `{{var}}` interpolation, backtick command expansion, and root resolution.
 - Use `--raw` to inspect configs that contain secrets in `env` or `vars` without expanding them into terminal output.
-- `--raw` only works for projects that have a config file.
+- `--raw` only works for projects that have a config file. With multiple targets, each document is raw independently.
 - Shell completions suggest project names from config files.

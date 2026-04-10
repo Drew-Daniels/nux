@@ -8,11 +8,13 @@ import (
 )
 
 var validateCmd = &cobra.Command{
-	Use:   "validate [name]",
+	Use:   "validate [name ...]",
 	Short: "Validate project config syntax",
-	Long:  `Validate project config files for structural errors. Validates all configs if no name is given.`,
-	Args:  cobra.MaximumNArgs(1),
-	RunE:  runValidate,
+	Long: `Validate project config files for structural errors. Validates all configs if no arguments are given.
+
+With one or more targets, validates each expanded project (supports glob
+patterns with +, group expansion with @, and project names as for nux/stop).`,
+	RunE: runValidate,
 }
 
 func init() {
@@ -28,11 +30,15 @@ func runValidate(_ *cobra.Command, args []string) error {
 }
 
 func runValidateWith(d *deps, args []string) error {
-	if len(args) > 0 {
-		return validateProject(d, args[0])
+	if len(args) == 0 {
+		return validateAll(d)
 	}
 
-	return validateAll(d)
+	targets, err := expandArgs(d, args)
+	if err != nil {
+		return err
+	}
+	return validateExpandedProjects(d, targets)
 }
 
 func validateAll(d *deps) error {
@@ -84,4 +90,29 @@ func validateProject(d *deps, name string) error {
 		_, _ = fmt.Fprintf(d.stderr, "  [error] %s: %v\n", name, e)
 	}
 	return fmt.Errorf("config %q has errors", name)
+}
+
+func validateExpandedProjects(d *deps, targets []sessionArg) error {
+	hasErrors := false
+	for _, t := range targets {
+		name := t.Project
+		cfg, _, err := d.store.Load(name)
+		if err != nil {
+			_, _ = fmt.Fprintf(d.stderr, "  [error] %s: %v\n", name, err)
+			hasErrors = true
+			continue
+		}
+		if errs := config.Validate(cfg); len(errs) > 0 {
+			for _, e := range errs {
+				_, _ = fmt.Fprintf(d.stderr, "  [error] %s: %v\n", name, e)
+			}
+			hasErrors = true
+		} else {
+			_, _ = fmt.Fprintf(d.stdout, "  [ok]    %s\n", name)
+		}
+	}
+	if hasErrors {
+		return fmt.Errorf("one or more configs have errors")
+	}
+	return nil
 }

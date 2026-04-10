@@ -11,17 +11,23 @@ import (
 var showRaw bool
 
 var showCmd = &cobra.Command{
-	Use:   "show <project>",
-	Short: "Print the resolved config for a project",
-	Long: `Print the fully resolved config for a project after interpolation,
+	Use:   "show <target> [target ...]",
+	Short: "Print resolved config(s) for project(s)",
+	Long: `Print the fully resolved config for one or more projects after interpolation,
 variable expansion, and root resolution. Useful for debugging configs.
 
+Supports glob patterns with + and group expansion with @.
+
 Use --raw to print the config before interpolation (no variable or
-environment expansion). This avoids exposing secrets in terminal output.`,
+environment expansion). This avoids exposing secrets in terminal output.
+
+Multiple targets are written as a YAML stream (documents separated by ---).`,
 	Example: `  nux show blog
+  nux show web+
+  nux show @work
   nux show blog --var port=8080
   nux show blog --raw`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		d, err := setup()
 		if err != nil {
@@ -62,19 +68,37 @@ func runShow(_ *cobra.Command, args []string) error {
 }
 
 func runShowWith(d *deps, args []string) error {
-	name := args[0]
-
-	if showRaw {
-		return runShowRaw(d, name)
-	}
-
-	result, err := d.resolver.Resolve(name)
+	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
 	}
 
+	for i, t := range targets {
+		var data []byte
+		if showRaw {
+			data, err = marshalShowRawYAML(d, t.Project)
+		} else {
+			data, err = marshalShowResolvedYAML(d, t.Project)
+		}
+		if err != nil {
+			return err
+		}
+		if i > 0 {
+			_, _ = fmt.Fprint(d.stdout, "---\n")
+		}
+		_, _ = fmt.Fprint(d.stdout, string(data))
+	}
+	return nil
+}
+
+func marshalShowResolvedYAML(d *deps, name string) ([]byte, error) {
+	result, err := d.resolver.Resolve(name)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := applyVarOverrides(d, result.Config); err != nil {
-		return err
+		return nil, err
 	}
 
 	out := showOutput{
@@ -86,16 +110,15 @@ func runShowWith(d *deps, args []string) error {
 
 	data, err := yaml.Marshal(out)
 	if err != nil {
-		return fmt.Errorf("marshalling output: %w", err)
+		return nil, fmt.Errorf("marshalling output: %w", err)
 	}
-	_, _ = fmt.Fprint(d.stdout, string(data))
-	return nil
+	return data, nil
 }
 
-func runShowRaw(d *deps, name string) error {
+func marshalShowRawYAML(d *deps, name string) ([]byte, error) {
 	cfg, cfgPath, err := d.store.Load(name)
 	if err != nil {
-		return fmt.Errorf("config not found: %s", d.store.Path(name))
+		return nil, fmt.Errorf("config not found: %s", d.store.Path(name))
 	}
 
 	out := showOutput{
@@ -107,8 +130,7 @@ func runShowRaw(d *deps, name string) error {
 
 	data, err := yaml.Marshal(out)
 	if err != nil {
-		return fmt.Errorf("marshalling output: %w", err)
+		return nil, fmt.Errorf("marshalling output: %w", err)
 	}
-	_, _ = fmt.Fprint(d.stdout, string(data))
-	return nil
+	return data, nil
 }

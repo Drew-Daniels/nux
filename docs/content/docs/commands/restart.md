@@ -6,12 +6,14 @@ weight: 2
 ## Usage
 
 ```text
-nux restart <session>
+nux restart <target> [target ...]
 ```
 
 ## Description
 
-Stops the session, then starts it again so changes in the project config are picked up. By default, nux attaches to the session after restart.
+Stops each matching session, then starts it again so changes in the project config are picked up. By default, nux attaches to the **last** restarted session.
+
+Targets support **glob patterns** (`+` matches any suffix, same as `nux` and `nux stop`), **`@group`** expansion from the global config, and multiple space-separated names.
 
 Use the **`:window`** suffix to restart one or more windows (comma-separated) inside a session without tearing down the rest.
 
@@ -27,6 +29,11 @@ Use the **`:window`** suffix to restart one or more windows (comma-separated) in
 ```sh
 # Full session restart (picks up config changes)
 nux restart blog
+
+# Several projects, or every project matching a pattern
+nux restart blog api
+nux restart web+
+nux restart @work
 
 # Restart only the "editor" window in the "blog" session
 nux restart blog:editor
@@ -61,6 +68,7 @@ If a window name does not exist in the project config, nux reports `"window not 
 
 ## Notes
 
-- `restart` accepts exactly one argument. It does not support patterns or groups.
+- With multiple targets, **`--no-attach`** skips attaching; otherwise nux attaches only to the last session in the expanded list (sorted order for globs).
+- A token like **`project+:window`** is still treated as a single glob pattern (not “expand projects then restart that window”). List targets explicitly if you need window restarts for several projects.
 - Window restarts are useful when a process is stuck or you changed commands for a single window.
 - **`--var`** updates the config `vars` map and re-runs `{{var}}` substitution on the loaded project. If a placeholder was already fully replaced using values from the YAML `vars` block, use **`--var`** to override those map entries before the next substitution, or edit the config on disk; see [Custom variables]({{< relref "/docs/configuration/custom-variables" >}}).

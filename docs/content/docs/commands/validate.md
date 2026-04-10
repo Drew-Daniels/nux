@@ -6,7 +6,7 @@ weight: 9
 ## Usage
 
 ```text
-nux validate [name]
+nux validate [name ...]
 ```
 
 ## Description
@@ -14,7 +14,7 @@ nux validate [name]
 Validates project configuration files and reports errors. Each config is printed with **`[ok]`** or **`[error]`**.
 
 - **With no arguments:** validates all project configs under `~/.config/nux/projects/`.
-- **With `name`:** validates only that project's config.
+- **With one or more targets:** validates each expanded project. Targets support **glob patterns** (`+`), **`@group`** expansion, and multiple space-separated names (same rules as `nux` / `nux stop`).
 
 ### What gets checked
 
@@ -42,8 +42,11 @@ If no project configs are found, nux prints `No project configs found.`
 # Check everything
 nux validate
 
-# Check one project
+# Check one or more projects
 nux validate blog
+nux validate blog api
+nux validate web+
+nux validate @work
 ```
 
 ## Notes
