@@ -67,6 +67,9 @@ func (ip *Interpolator) InterpolateVars(cfg *ProjectConfig) error {
 	})
 }
 
+// applyTransform walks every interpolatable string field in the config tree.
+// Update this function when adding new string fields to ProjectConfig, Window,
+// or Pane - there is no compile-time check for missing fields.
 func (ip *Interpolator) applyTransform(cfg *ProjectConfig, fn func(string) string) error {
 	cfg.Root = fn(cfg.Root)
 	cfg.Command = fn(cfg.Command)

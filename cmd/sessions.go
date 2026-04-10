@@ -26,13 +26,7 @@ func runSessions(d *deps, args []string) error {
 			return err
 		}
 
-		cfg := result.Config
-
-		// -x opts out of the project config: the project name is only
-		// used for directory resolution and session naming.
-		if d.run != "" {
-			cfg = nil
-		}
+		cfg := effectiveConfig(d, result)
 
 		if err := applyVarOverrides(d, cfg); err != nil {
 			return err
@@ -53,10 +47,8 @@ func runSessions(d *deps, args []string) error {
 				}
 			}
 		} else {
-			if !d.client.HasSession(result.Name) {
-				if err := d.builder.Build(result.Name, cfg, result.Root); err != nil {
-					return fmt.Errorf("building session %q: %w", result.Name, err)
-				}
+			if err := buildIfAbsent(d, result); err != nil {
+				return err
 			}
 		}
 
@@ -64,6 +56,24 @@ func runSessions(d *deps, args []string) error {
 		if !d.noAttach && isLast {
 			return d.client.AttachSession(result.Name)
 		}
+	}
+	return nil
+}
+
+func effectiveConfig(d *deps, result *resolver.Result) *config.ProjectConfig {
+	if d.run != "" {
+		return nil
+	}
+	return result.Config
+}
+
+func buildIfAbsent(d *deps, result *resolver.Result) error {
+	cfg := effectiveConfig(d, result)
+	if d.client.HasSession(result.Name) {
+		return nil
+	}
+	if err := d.builder.Build(result.Name, cfg, result.Root); err != nil {
+		return fmt.Errorf("building session %q: %w", result.Name, err)
 	}
 	return nil
 }
@@ -178,14 +188,8 @@ func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 
 func runBareNux(d *deps) error {
 	if result, ok := tryAutoDetect(d); ok {
-		cfg := result.Config
-		if d.run != "" {
-			cfg = nil
-		}
-		if !d.client.HasSession(result.Name) {
-			if err := d.builder.Build(result.Name, cfg, result.Root); err != nil {
-				return fmt.Errorf("building session: %w", err)
-			}
+		if err := buildIfAbsent(d, result); err != nil {
+			return err
 		}
 		if !d.noAttach {
 			return d.client.AttachSession(result.Name)

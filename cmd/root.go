@@ -67,12 +67,15 @@ type deps struct {
 	stdout      io.Writer
 	stderr      io.Writer
 
-	getwd      func() (string, error)
-	confirm    func(prompt string) (bool, error)
-	openEditor func(path string) error
-	newPicker  func(backend string, stderr io.Writer) (picker.Picker, error)
-	execCmd    func(name string, arg ...string) *exec.Cmd
-	help       func() error
+	getwd        func() (string, error)
+	confirm      func(prompt string) (bool, error)
+	openEditor   func(path string) error
+	newPicker    func(backend string, stderr io.Writer) (picker.Picker, error)
+	execCmd      func(name string, arg ...string) *exec.Cmd
+	help         func() error
+	checkBin     func(name string) (path string, ok bool)
+	probeVersion func() (string, error)
+	checkStat    func(path string) (os.FileInfo, error)
 }
 
 var rootCmd = &cobra.Command{
@@ -201,6 +204,9 @@ func setup() (*deps, error) {
 		newPicker:     picker.New,
 		execCmd:       exec.Command,
 		help:          rootCmd.Help,
+		checkBin:      defaultBinaryChecker,
+		probeVersion:  defaultVersionProber,
+		checkStat:     os.Stat,
 	}
 	d.openEditor = func(path string) error {
 		return openInEditor(d, path)

@@ -86,7 +86,7 @@ func (b *Builder) Build(name string, cfg *config.ProjectConfig, root string) err
 func (b *Builder) buildDefault(name, root string) error {
 	ds := b.global.DefaultSession
 
-	// When -x is set, skip the default session template entirely.
+	// -x: ignore the default session template, use ad-hoc or bare.
 	if b.adHocCommand() != "" {
 		if b.hasAdHocPanes() {
 			return b.buildAdHoc(name, root, nil)
@@ -94,31 +94,36 @@ func (b *Builder) buildDefault(name, root string) error {
 		return b.buildBare(name, root)
 	}
 
-	if b.hasAdHocPanes() && (ds == nil || len(ds.Windows) == 0) {
+	// --layout/--panes without -x: ad-hoc layout, fall back to ds.Command.
+	if b.hasAdHocPanes() {
 		return b.buildAdHoc(name, root, ds)
 	}
 
+	// No flags and no default session: bare shell.
 	if ds == nil {
 		return b.buildBare(name, root)
 	}
 
+	// Default session with windows: build them.
 	if len(ds.Windows) > 0 {
-		cfg := &config.ProjectConfig{Windows: ds.Windows}
-		return b.buildWindowed(name, cfg, root)
+		return b.buildWindowed(name, &config.ProjectConfig{Windows: ds.Windows}, root)
 	}
 
+	// Default session with a command (or empty): single pane.
+	return b.buildDefaultCommand(name, root, ds)
+}
+
+func (b *Builder) buildDefaultCommand(name, root string, ds *config.DefaultSession) error {
 	if err := b.createDetachedSession(name, root, ""); err != nil {
 		return err
 	}
 
-	fw := b.firstWindow()
-	firstWindow := name + ":" + fw
+	firstWindow := name + ":" + b.firstWindow()
 	var errs []error
 	errs = append(errs, b.sendPaneInit(firstWindow)...)
 	if ds.Command != "" {
 		errs = append(errs, b.client.SendKeys(firstWindow, ds.Command))
 	}
-
 	return errors.Join(errs...)
 }
 
@@ -192,29 +197,7 @@ func (b *Builder) buildCommand(name string, cfg *config.ProjectConfig, root stri
 }
 
 func (b *Builder) buildWindowed(name string, cfg *config.ProjectConfig, root string) error {
-	firstWin := cfg.Windows[0]
-	winRoot := windowRoot(firstWin.Root, root)
-
-	if err := b.createDetachedSession(name, winRoot, firstWin.Name); err != nil {
-		return err
-	}
-
-	firstWindow := name + ":" + firstWin.Name
-	var errs []error
-
-	errs = append(errs, b.applySessionSettings(name, cfg, firstWindow)...)
-	errs = append(errs, b.startWindow(name, firstWin, root))
-
-	for _, w := range cfg.Windows[1:] {
-		wr := windowRoot(w.Root, root)
-		errs = append(errs, b.client.NewWindow(name, NewWindowOpts{Name: w.Name, Root: wr}))
-		errs = append(errs, b.startWindow(name, w, root))
-	}
-
-	errs = append(errs, b.client.SelectWindow(name, firstWin.Name))
-	errs = append(errs, b.sendOnReady(cfg, firstWindow)...)
-
-	return errors.Join(errs...)
+	return b.buildWindowList(name, cfg, root, cfg.Windows)
 }
 
 // BuildWindows creates a session containing only the named windows, in the
@@ -240,6 +223,10 @@ func (b *Builder) BuildWindows(name string, cfg *config.ProjectConfig, root stri
 		windows = append(windows, w)
 	}
 
+	return b.buildWindowList(name, cfg, root, windows)
+}
+
+func (b *Builder) buildWindowList(name string, cfg *config.ProjectConfig, root string, windows []config.Window) error {
 	firstWin := windows[0]
 	winRoot := windowRoot(firstWin.Root, root)
 
@@ -342,18 +329,26 @@ func shellEscape(s string) string {
 }
 
 func (b *Builder) startWindow(session string, w config.Window, projectRoot string) error {
-	var errs []error
-	target := session + ":" + w.Name
-
 	if w.Command != "" {
-		errs = append(errs, b.sendPaneInit(target)...)
-		errs = append(errs, b.sendWindowEnv(target, w.Env)...)
-		errs = append(errs, b.client.SendKeys(target, w.Command))
-		return errors.Join(errs...)
+		return b.startCommandWindow(session, w)
 	}
+	return b.startPanedWindow(session, w, projectRoot)
+}
 
+func (b *Builder) startCommandWindow(session string, w config.Window) error {
+	target := session + ":" + w.Name
+	var errs []error
+	errs = append(errs, b.sendPaneInit(target)...)
+	errs = append(errs, b.sendWindowEnv(target, w.Env)...)
+	errs = append(errs, b.client.SendKeys(target, w.Command))
+	return errors.Join(errs...)
+}
+
+func (b *Builder) startPanedWindow(session string, w config.Window, projectRoot string) error {
+	target := session + ":" + w.Name
 	wr := windowRoot(w.Root, projectRoot)
 	pb := b.paneBase()
+	var errs []error
 
 	for i, p := range w.Panes {
 		paneTarget := fmt.Sprintf("%s.%d", target, pb+i)

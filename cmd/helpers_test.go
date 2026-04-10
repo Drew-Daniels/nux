@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -60,6 +61,9 @@ func testDeps(t *testing.T) *deps {
 		newPicker:     func(string, io.Writer) (picker.Picker, error) { return noopPicker{}, nil },
 		execCmd:       exec.Command,
 		help:          func() error { return nil },
+		checkBin:      func(name string) (string, bool) { return "/usr/bin/" + name, true },
+		probeVersion:  func() (string, error) { return "tmux 3.6", nil },
+		checkStat:     os.Stat,
 	}
 }
 

@@ -11,11 +11,7 @@ import (
 func TestRunDoctorWith_AllPass(t *testing.T) {
 	d := testDeps(t)
 
-	checkBin := func(name string) (string, bool) { return "/usr/bin/" + name, true }
-	probeVersion := func() (string, error) { return "tmux 3.6", nil }
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
-
-	err := runDoctorWith(d, checkBin, probeVersion, checkStat)
+	err := runDoctorWith(d)
 	if err != nil {
 		t.Fatalf("runDoctorWith: %v", err)
 	}
@@ -31,12 +27,9 @@ func TestRunDoctorWith_AllPass(t *testing.T) {
 
 func TestRunDoctorWith_TmuxMissing(t *testing.T) {
 	d := testDeps(t)
+	d.checkBin = func(name string) (string, bool) { return "", false }
 
-	checkBin := func(name string) (string, bool) { return "", false }
-	probeVersion := func() (string, error) { return "", nil }
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
-
-	err := runDoctorWith(d, checkBin, probeVersion, checkStat)
+	err := runDoctorWith(d)
 	if err == nil {
 		t.Fatal("expected error when tmux missing")
 	}
@@ -50,16 +43,14 @@ func TestRunDoctorWith_TmuxMissing(t *testing.T) {
 func TestRunDoctorChecks_ZoxideMissing(t *testing.T) {
 	d := testDeps(t)
 	d.global.Zoxide = true
-
-	checkBin := func(name string) (string, bool) {
+	d.checkBin = func(name string) (string, bool) {
 		if name == "zoxide" {
 			return "", false
 		}
 		return "/usr/bin/" + name, true
 	}
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
 
-	ok := runDoctorChecks(d, checkBin, checkStat)
+	ok := runDoctorChecks(d)
 	if ok {
 		t.Error("expected false when zoxide missing")
 	}
@@ -73,16 +64,14 @@ func TestRunDoctorChecks_ZoxideMissing(t *testing.T) {
 func TestRunDoctorChecks_PickerMissing(t *testing.T) {
 	d := testDeps(t)
 	d.global.Picker = "fzf"
-
-	checkBin := func(name string) (string, bool) {
+	d.checkBin = func(name string) (string, bool) {
 		if name == "fzf" {
 			return "", false
 		}
 		return "/usr/bin/" + name, true
 	}
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
 
-	_ = runDoctorChecks(d, checkBin, checkStat)
+	_ = runDoctorChecks(d)
 
 	out := stdoutStr(d)
 	if !strings.Contains(out, "[warn]") {
@@ -97,10 +86,7 @@ func TestRunDoctorChecks_InvalidConfig(t *testing.T) {
 		Windows: []config.Window{{Name: "editor"}},
 	})
 
-	checkBin := func(name string) (string, bool) { return "/usr/bin/" + name, true }
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
-
-	_ = runDoctorChecks(d, checkBin, checkStat)
+	_ = runDoctorChecks(d)
 
 	errOut := stderrStr(d)
 	if !strings.Contains(errOut, "[fail]") {
@@ -110,13 +96,11 @@ func TestRunDoctorChecks_InvalidConfig(t *testing.T) {
 
 func TestRunDoctorChecks_DirsMissing(t *testing.T) {
 	d := testDeps(t)
-
-	checkBin := func(name string) (string, bool) { return "/usr/bin/" + name, true }
-	checkStat := func(path string) (os.FileInfo, error) {
+	d.checkStat = func(path string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	}
 
-	_ = runDoctorChecks(d, checkBin, checkStat)
+	_ = runDoctorChecks(d)
 
 	out := stdoutStr(d)
 	if !strings.Contains(out, "[warn]") {
@@ -130,11 +114,7 @@ func TestRunDoctorWith_WithValidConfigs(t *testing.T) {
 		Windows: []config.Window{{Name: "editor"}},
 	})
 
-	checkBin := func(name string) (string, bool) { return "/usr/bin/" + name, true }
-	probeVersion := func() (string, error) { return "tmux 3.6", nil }
-	checkStat := func(path string) (os.FileInfo, error) { return os.Stat(d.global.ProjectsDir) }
-
-	err := runDoctorWith(d, checkBin, probeVersion, checkStat)
+	err := runDoctorWith(d)
 	if err != nil {
 		t.Fatalf("runDoctorWith: %v", err)
 	}

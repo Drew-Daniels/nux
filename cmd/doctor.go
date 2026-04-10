@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -11,12 +10,6 @@ import (
 	"github.com/Drew-Daniels/nux/internal/resolver"
 	"github.com/spf13/cobra"
 )
-
-type binaryChecker func(name string) (path string, ok bool)
-
-type versionProber func() (string, error)
-
-type statFunc func(path string) (os.FileInfo, error)
 
 func defaultBinaryChecker(name string) (string, bool) {
 	path, err := exec.LookPath(name)
@@ -50,28 +43,28 @@ func runDoctor(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	return runDoctorWith(d, defaultBinaryChecker, defaultVersionProber, os.Stat)
+	return runDoctorWith(d)
 }
 
-func runDoctorWith(d *deps, checkBin binaryChecker, probeVersion versionProber, checkStat statFunc) error {
+func runDoctorWith(d *deps) error {
 	out := d.stdout
 
 	_, _ = fmt.Fprintf(out, "  nux %s (%s/%s)\n\n", Version, runtime.GOOS, runtime.GOARCH)
 	ok := true
 
-	if path, found := checkBin("tmux"); !found {
+	if path, found := d.checkBin("tmux"); !found {
 		_, _ = fmt.Fprintf(out, "  [missing] tmux\n")
 		ok = false
 	} else {
 		_, _ = fmt.Fprintf(out, "  [ok]      tmux (%s)\n", path)
-		if ver, err := probeVersion(); err == nil {
+		if ver, err := d.probeVersion(); err == nil {
 			_, _ = fmt.Fprintf(out, "            %s\n", ver)
 		}
 	}
 
 	_, _ = fmt.Fprintf(out, "  [ok]      global config\n")
 
-	ok = runDoctorChecks(d, checkBin, checkStat) && ok
+	ok = runDoctorChecks(d) && ok
 
 	_, _ = fmt.Fprintln(out)
 	if ok {
@@ -81,33 +74,33 @@ func runDoctorWith(d *deps, checkBin binaryChecker, probeVersion versionProber, 
 	return fmt.Errorf("some checks failed")
 }
 
-func runDoctorChecks(d *deps, checkBin binaryChecker, checkStat statFunc) bool {
+func runDoctorChecks(d *deps) bool {
 	out := d.stdout
 	errOut := d.stderr
 	global := d.global
 	ok := true
 
 	if global.Zoxide {
-		if _, found := checkBin("zoxide"); !found {
+		if _, found := d.checkBin("zoxide"); !found {
 			_, _ = fmt.Fprintf(out, "  [missing] zoxide\n")
 			ok = false
 		}
 	}
 
 	if global.Picker != "" {
-		if _, found := checkBin(global.Picker); !found {
+		if _, found := d.checkBin(global.Picker); !found {
 			_, _ = fmt.Fprintf(out, "  [warn]    picker %q not found, interactive selection will fail\n", global.Picker)
 		}
 	}
 
-	if _, err := checkStat(d.projectCfgDir); err != nil {
+	if _, err := d.checkStat(d.projectCfgDir); err != nil {
 		_, _ = fmt.Fprintf(out, "  [warn]    config directory missing: %s\n", d.projectCfgDir)
 	} else {
 		_, _ = fmt.Fprintf(out, "  [ok]      config directory (%s)\n", d.projectCfgDir)
 	}
 
 	projectsDir := resolver.ResolveRoot(global.ProjectsDir, "")
-	if _, err := checkStat(projectsDir); err != nil {
+	if _, err := d.checkStat(projectsDir); err != nil {
 		_, _ = fmt.Fprintf(out, "  [warn]    projects directory missing: %s\n", projectsDir)
 	} else {
 		_, _ = fmt.Fprintf(out, "  [ok]      projects directory (%s)\n", projectsDir)

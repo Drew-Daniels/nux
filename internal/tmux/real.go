@@ -155,8 +155,7 @@ func (c *RealClient) SetOption(session, key, value string) error {
 }
 
 func (c *RealClient) SetHook(session, hookName, command string) error {
-	escaped := strings.ReplaceAll(command, "'", "'\"'\"'")
-	hook := fmt.Sprintf("run-shell '%s'", escaped)
+	hook := fmt.Sprintf("run-shell '%s'", shellEscape(command))
 	return c.run("set-hook", "-t", session, hookName, hook)
 }
 

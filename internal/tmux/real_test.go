@@ -239,7 +239,7 @@ func TestSetHook_DryRun_QuoteEscaping(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SetHook("sess", "session-closed[0]", "echo 'hello'")
 	out := buf.String()
-	expected := `run-shell 'echo '"'"'hello'"'"''`
+	expected := `run-shell 'echo '\''hello'\'''`
 	if !strings.Contains(out, expected) {
 		t.Errorf("expected %q in output, got %q", expected, out)
 	}
