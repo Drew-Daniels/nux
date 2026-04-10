@@ -51,3 +51,13 @@ docs: update CLI usage examples
 2. Keep commits atomic and focused.
 3. Run `just check` before pushing.
 4. Open a PR and describe what changed and why.
+
+## Releasing
+
+Releases are fully automated via GitHub Actions and [goreleaser](https://goreleaser.com/).
+
+1. Ensure `main` is green.
+2. Tag the release: `git tag v1.2.0`
+3. Push the tag: `git push origin v1.2.0`
+
+CI builds binaries for linux/darwin (amd64/arm64), creates a GitHub release with a changelog, publishes to the Homebrew tap, and produces deb/rpm/apk packages. No manual steps after the tag push.

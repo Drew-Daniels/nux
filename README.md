@@ -1,5 +1,10 @@
 # nux
 
+[![CI](https://github.com/Drew-Daniels/nux/actions/workflows/ci.yml/badge.svg)](https://github.com/Drew-Daniels/nux/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Drew-Daniels/nux)](https://goreportcard.com/report/github.com/Drew-Daniels/nux)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Drew-Daniels/nux.svg)](https://pkg.go.dev/github.com/Drew-Daniels/nux)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A modern tmux session manager written in Go.
 
 nux manages tmux sessions declaratively through project configs, with a unified interface that handles both configured and ad-hoc projects. It replaces tmuxinator with a single binary, zero runtime dependencies beyond tmux, and first-class support for batch session management.
