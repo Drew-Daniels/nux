@@ -21,7 +21,7 @@ Session names accept **glob patterns** (for example `web+` matches related sessi
 nux stop-all
 ```
 
-Kills **every** running tmux session that nux manages. This is a blunt reset when you want no sessions left running. It is separate from `nux stop` (which requires at least one session argument).
+Kills **every** running tmux session. This is a blunt reset when you want no sessions left running. It is separate from `nux stop` (which requires at least one session argument).
 
 ## Examples
 

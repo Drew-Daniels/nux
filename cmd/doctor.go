@@ -100,11 +100,10 @@ func runDoctorChecks(d *deps, checkBin binaryChecker, checkStat statFunc) bool {
 		}
 	}
 
-	configDir := config.ProjectConfigDir()
-	if _, err := checkStat(configDir); err != nil {
-		_, _ = fmt.Fprintf(out, "  [warn]    config directory missing: %s\n", configDir)
+	if _, err := checkStat(d.projectCfgDir); err != nil {
+		_, _ = fmt.Fprintf(out, "  [warn]    config directory missing: %s\n", d.projectCfgDir)
 	} else {
-		_, _ = fmt.Fprintf(out, "  [ok]      config directory (%s)\n", configDir)
+		_, _ = fmt.Fprintf(out, "  [ok]      config directory (%s)\n", d.projectCfgDir)
 	}
 
 	projectsDir := resolver.ResolveRoot(global.ProjectsDir, "")

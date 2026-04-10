@@ -86,6 +86,53 @@ func TestBuild_WindowsWithPanesAndLayout(t *testing.T) {
 	}
 }
 
+func TestBuildWindows_UserOrder(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{}
+	builder := newTestBuilder(mock, global)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+		OnStart: []string{"echo hi"},
+		OnReady: []string{"echo ready"},
+	}
+
+	err := builder.BuildWindows("myproj", cfg, "/home/user/myproj", []string{"server", "editor"})
+	if err != nil {
+		t.Fatalf("BuildWindows: %v", err)
+	}
+
+	var ns *NewSessionOpts
+	for _, c := range mock.Calls {
+		if c.Method == "NewSession" && c.Opts != nil {
+			if o, ok := c.Opts.(NewSessionOpts); ok {
+				ns = &o
+				break
+			}
+		}
+	}
+	if ns == nil || ns.Window != "server" {
+		t.Errorf("first window should be server (user order), got %+v", ns)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "myproj:server")
+}
+
+func TestBuildWindows_UnknownWindow(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{{Name: "a", Command: "x"}},
+	}
+	err := builder.BuildWindows("p", cfg, "/r", []string{"missing"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestBuild_CommandOnly(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
@@ -197,6 +244,96 @@ func TestBuild_RunCommand_NilConfig(t *testing.T) {
 	}
 	if mock.Called("SplitWindow") {
 		t.Error("--run without --panes should not split windows")
+	}
+}
+
+func TestBuild_RunCommand_OverridesDefaultSessionCommand(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{Command: "htop"},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Command: "fish"})
+
+	err := builder.Build("proj", nil, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "fish")
+
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "htop" {
+			t.Error("--run should override default_session command")
+		}
+	}
+}
+
+func TestBuild_RunCommand_OverridesDefaultSessionWindows(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{
+			Windows: []config.Window{
+				{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+				{Name: "shell"},
+			},
+		},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Command: "fish"})
+
+	err := builder.Build("proj", nil, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "fish")
+
+	if mock.Called("NewWindow") {
+		t.Error("--run should skip default_session windows")
+	}
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "nvim" {
+			t.Error("--run should not send default_session window commands")
+		}
+	}
+}
+
+func TestBuild_RunCommand_WithAdHocLayout_OverridesDefaultSessionWindows(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{
+			Windows: []config.Window{
+				{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+			},
+		},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 3, Command: "fish"})
+
+	err := builder.Build("proj", nil, "/tmp/proj")
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	splits := callsFor(mock, "SplitWindow")
+	if len(splits) != 2 {
+		t.Fatalf("expected 2 SplitWindow calls for 3 panes, got %d", len(splits))
+	}
+	assertCalledWith(t, mock, "SelectLayout", "tiled")
+
+	cmdCalls := 0
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "fish" {
+			cmdCalls++
+		}
+	}
+	if cmdCalls != 3 {
+		t.Errorf("expected fish sent to 3 panes, got %d", cmdCalls)
+	}
+
+	if mock.Called("NewWindow") {
+		t.Error("--run with --layout should skip default_session windows")
 	}
 }
 
@@ -682,8 +819,8 @@ func TestBuild_WindowEnv(t *testing.T) {
 		t.Fatalf("expected 4 export commands (2 vars x 2 panes), got %d: %v", len(exports), exports)
 	}
 
-	assertCalledWith(t, mock, "SendKeys", "export DEBUG=true")
-	assertCalledWith(t, mock, "SendKeys", "export PORT=3000")
+	assertCalledWith(t, mock, "SendKeys", "export DEBUG='true'")
+	assertCalledWith(t, mock, "SendKeys", "export PORT='3000'")
 }
 
 func TestBuild_WindowEnv_MultipleWindows(t *testing.T) {
@@ -717,19 +854,19 @@ func TestBuild_WindowEnv_MultipleWindows(t *testing.T) {
 		if len(c.Args) < 2 {
 			continue
 		}
-		if strings.Contains(c.Args[0], ":api") && c.Args[1] == "export PORT=3000" {
+		if strings.Contains(c.Args[0], ":api") && c.Args[1] == "export PORT='3000'" {
 			apiExport = true
 		}
-		if strings.Contains(c.Args[0], ":frontend") && c.Args[1] == "export PORT=5173" {
+		if strings.Contains(c.Args[0], ":frontend") && c.Args[1] == "export PORT='5173'" {
 			feExport = true
 		}
 	}
 
 	if !apiExport {
-		t.Error("expected export PORT=3000 sent to api window")
+		t.Error("expected export PORT='3000' sent to api window")
 	}
 	if !feExport {
-		t.Error("expected export PORT=5173 sent to frontend window")
+		t.Error("expected export PORT='5173' sent to frontend window")
 	}
 }
 
@@ -756,7 +893,7 @@ func TestBuild_WindowEnv_CommandShorthand(t *testing.T) {
 	exportIdx := -1
 	cmdIdx := -1
 	for i, c := range sends {
-		if len(c.Args) >= 2 && c.Args[1] == "export PORT=8080" {
+		if len(c.Args) >= 2 && c.Args[1] == "export PORT='8080'" {
 			exportIdx = i
 		}
 		if len(c.Args) >= 2 && c.Args[1] == "npm start" {
@@ -765,7 +902,7 @@ func TestBuild_WindowEnv_CommandShorthand(t *testing.T) {
 	}
 
 	if exportIdx == -1 {
-		t.Fatal("expected export PORT=8080")
+		t.Fatal("expected export PORT='8080'")
 	}
 	if cmdIdx == -1 {
 		t.Fatal("expected npm start")
@@ -796,11 +933,39 @@ func TestBuild_WindowEnv_WithProjectEnv(t *testing.T) {
 	}
 
 	assertCalledWith(t, mock, "SetEnv", "NODE_ENV")
-	assertCalledWith(t, mock, "SendKeys", "export PORT=3000")
+	assertCalledWith(t, mock, "SendKeys", "export PORT='3000'")
 
 	if !mock.Called("SetEnv") {
 		t.Error("project-level env should use SetEnv")
 	}
+}
+
+func TestBuild_WindowEnv_ShellEscaped(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, nil)
+
+	cfg := &config.ProjectConfig{
+		Windows: []config.Window{
+			{
+				Name:    "app",
+				Command: "node server.js",
+				Env: map[string]string{
+					"MSG":    "hello world",
+					"QUOTES": "it's fine",
+					"DOLLAR": "price is $5",
+				},
+			},
+		},
+	}
+
+	err := builder.Build("test", cfg, "/tmp/test")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	assertCalledWith(t, mock, "SendKeys", "export DOLLAR='price is $5'")
+	assertCalledWith(t, mock, "SendKeys", "export MSG='hello world'")
+	assertCalledWith(t, mock, "SendKeys", "export QUOTES='it'\\''s fine'")
 }
 
 func TestRestartSession(t *testing.T) {

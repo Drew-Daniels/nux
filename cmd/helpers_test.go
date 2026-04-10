@@ -25,7 +25,8 @@ func (noopPicker) Pick([]string, string) (string, error) { return "", nil }
 func testDeps(t *testing.T) *deps {
 	t.Helper()
 
-	store := config.NewProjectStore(t.TempDir())
+	projectCfgDir := t.TempDir()
+	store := config.NewProjectStore(projectCfgDir)
 	global := &config.GlobalConfig{
 		ProjectsDir: t.TempDir(),
 	}
@@ -36,28 +37,29 @@ func testDeps(t *testing.T) *deps {
 	stderr := &bytes.Buffer{}
 
 	return &deps{
-		global:      global,
-		client:      client,
-		builder:     builder,
-		resolver:    res,
-		store:       store,
-		noAttach:    false,
-		force:       false,
-		deleteForce: false,
-		run:         "",
-		layout:      "",
-		panes:       0,
-		editor:      "echo",
-		vars:        map[string]string{},
-		stdin:       strings.NewReader(""),
-		stdout:      stdout,
-		stderr:      stderr,
-		getwd:       func() (string, error) { return "/tmp/test", nil },
-		confirm:     func(string) (bool, error) { return true, nil },
-		openEditor:  func(string) error { return nil },
-		newPicker:   func(string, io.Writer) (picker.Picker, error) { return noopPicker{}, nil },
-		execCmd:     exec.Command,
-		help:        func() error { return nil },
+		global:        global,
+		client:        client,
+		builder:       builder,
+		resolver:      res,
+		store:         store,
+		projectCfgDir: projectCfgDir,
+		noAttach:      false,
+		force:         false,
+		deleteForce:   false,
+		run:           "",
+		layout:        "",
+		panes:         0,
+		editor:        "echo",
+		vars:          map[string]string{},
+		stdin:         strings.NewReader(""),
+		stdout:        stdout,
+		stderr:        stderr,
+		getwd:         func() (string, error) { return "/tmp/test", nil },
+		confirm:       func(string) (bool, error) { return true, nil },
+		openEditor:    func(string) error { return nil },
+		newPicker:     func(string, io.Writer) (picker.Picker, error) { return noopPicker{}, nil },
+		execCmd:       exec.Command,
+		help:          func() error { return nil },
 	}
 }
 

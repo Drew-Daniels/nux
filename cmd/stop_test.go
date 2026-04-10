@@ -29,6 +29,25 @@ func TestRunStopWith(t *testing.T) {
 	}
 }
 
+func TestRunStopWith_NormalizesSessionName(t *testing.T) {
+	d := testDeps(t)
+
+	if err := runStopWith(d, []string{"my.project"}); err != nil {
+		t.Fatalf("runStopWith: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" && len(c.Args) > 0 && c.Args[0] == "my_project" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected KillSession with normalized name 'my_project'")
+	}
+}
+
 func TestRunStopWith_ExpandError(t *testing.T) {
 	d := testDeps(t)
 	err := runStopWith(d, []string{"@missing"})

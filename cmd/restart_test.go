@@ -7,6 +7,34 @@ import (
 	"github.com/Drew-Daniels/nux/internal/tmux"
 )
 
+func TestRunRestartWith_VarOverrides(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.vars = map[string]string{"greeting": "hello"}
+	// No vars in file so Resolve leaves {{greeting}} in Command; applyVarOverrides
+	// merges CLI vars before RestartSession builds.
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "echo {{greeting}}",
+	})
+
+	if err := runRestartWith(d, []string{"blog"}); err != nil {
+		t.Fatalf("runRestartWith: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "echo hello" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected SendKeys with CLI --var override (echo hello)")
+	}
+}
+
 func TestRunRestartWith_FullSession(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
@@ -103,5 +131,32 @@ func TestRunRestartWith_Window_Attaches(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	if !mock.Called("AttachSession") {
 		t.Error("expected AttachSession when noAttach=false")
+	}
+}
+
+func TestRunRestartWith_MultiWindow(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
+			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	})
+
+	if err := runRestartWith(d, []string{"blog:editor,server"}); err != nil {
+		t.Fatalf("runRestartWith: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	n := 0
+	for _, c := range mock.Calls {
+		if c.Method == "KillWindow" {
+			n++
+		}
+	}
+	if n != 2 {
+		t.Errorf("expected 2 KillWindow calls, got %d", n)
 	}
 }

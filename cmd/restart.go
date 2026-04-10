@@ -7,10 +7,12 @@ var restartCmd = &cobra.Command{
 	Short: "Restart a tmux session",
 	Long: `Stop and start a tmux session, picking up any config changes.
 
-Supports :window syntax to restart individual windows without touching the
-rest of the session.`,
+Supports project:window syntax to restart one or more windows (comma-separated)
+without tearing down the rest of the session.`,
 	Example: `  nux restart blog
-  nux restart blog:editor`,
+  nux restart blog --var port=9090
+  nux restart blog:editor
+  nux restart blog:editor,server`,
 	Args: cobra.ExactArgs(1),
 	RunE: runRestart,
 }
@@ -28,18 +30,25 @@ func runRestart(_ *cobra.Command, args []string) error {
 }
 
 func runRestartWith(d *deps, args []string) error {
-	arg := args[0]
-
-	projectName, windowName := ParseTarget(arg)
-
-	result, err := d.resolver.Resolve(projectName)
+	sa, err := parseSessionToken(args[0])
 	if err != nil {
 		return err
 	}
 
-	if windowName != "" {
-		if err := d.builder.RestartWindow(result.Name, windowName, result.Config, result.Root); err != nil {
-			return err
+	result, err := d.resolver.Resolve(sa.Project)
+	if err != nil {
+		return err
+	}
+
+	if err := applyVarOverrides(d, result.Config); err != nil {
+		return err
+	}
+
+	if sa.Windows != nil {
+		for _, w := range sa.Windows {
+			if err := d.builder.RestartWindow(result.Name, w, result.Config, result.Root); err != nil {
+				return err
+			}
 		}
 	} else {
 		if err := d.builder.RestartSession(result.Name, result.Config, result.Root); err != nil {

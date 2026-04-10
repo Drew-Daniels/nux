@@ -102,6 +102,17 @@ Pass multiple project names:
 nux blog api docs
 ```
 
+## Selective windows (start)
+
+With a multi-window project config, start only the windows you need (comma-separated, in that order):
+
+```sh
+nux blog:editor
+nux blog:editor,shell
+```
+
+See [Selective windows]({{< relref "/docs/guides/selective-windows" >}}) for details and how this interacts with hooks.
+
 ## Session groups
 
 In `~/.config/nux/config.yaml`, define groups:
@@ -132,8 +143,9 @@ nux stop-all               # stop everything
 ## Restarting after config changes
 
 ```sh
-nux restart blog           # full session restart
-nux restart blog:editor    # restart just one window
+nux restart blog              # full session restart
+nux restart blog:editor       # restart just one window
+nux restart blog:editor,shell # restart several windows in order
 ```
 
 ## Dry-run and diagnostics
@@ -152,10 +164,10 @@ nux doctor
 
 ## Running commands
 
-Run a command in the session without writing a config:
+Run a command instead of using the project config:
 
 ```sh
 nux -x "just dev"                     # in the current directory
-nux -x "fish" blog                    # in a named project
+nux -x "just dev" blog                # in the blog project directory
 nux -x "fish" -l tiled -p 4 blog     # in every pane of an ad-hoc layout
 ```

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/Drew-Daniels/nux/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ Supports glob patterns with + and group expansion with @.`,
 
 var stopAllCmd = &cobra.Command{
 	Use:   "stop-all",
-	Short: "Stop all running tmux sessions managed by nux",
+	Short: "Stop all running tmux sessions",
 	RunE:  runStopAll,
 }
 
@@ -39,14 +40,15 @@ func runStop(_ *cobra.Command, args []string) error {
 }
 
 func runStopWith(d *deps, args []string) error {
-	names, err := expandArgs(d, args)
+	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
 	}
 
-	for _, name := range names {
-		if err := d.builder.StopSession(name); err != nil {
-			return fmt.Errorf("stopping session %q: %w", name, err)
+	for _, arg := range targets {
+		normalized := config.NormalizeSessionName(arg.Project)
+		if err := d.builder.StopSession(normalized); err != nil {
+			return fmt.Errorf("stopping session %q: %w", arg.Project, err)
 		}
 	}
 	return nil

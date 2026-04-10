@@ -86,6 +86,14 @@ func (b *Builder) Build(name string, cfg *config.ProjectConfig, root string) err
 func (b *Builder) buildDefault(name, root string) error {
 	ds := b.global.DefaultSession
 
+	// When -x is set, skip the default session template entirely.
+	if b.adHocCommand() != "" {
+		if b.hasAdHocPanes() {
+			return b.buildAdHoc(name, root, nil)
+		}
+		return b.buildBare(name, root)
+	}
+
 	if b.hasAdHocPanes() && (ds == nil || len(ds.Windows) == 0) {
 		return b.buildAdHoc(name, root, ds)
 	}
@@ -110,7 +118,6 @@ func (b *Builder) buildDefault(name, root string) error {
 	if ds.Command != "" {
 		errs = append(errs, b.client.SendKeys(firstWindow, ds.Command))
 	}
-	errs = append(errs, b.sendAdHocCommand(firstWindow)...)
 
 	return errors.Join(errs...)
 }
@@ -210,6 +217,54 @@ func (b *Builder) buildWindowed(name string, cfg *config.ProjectConfig, root str
 	return errors.Join(errs...)
 }
 
+// BuildWindows creates a session containing only the named windows, in the
+// given order. Session-level settings and hooks use the first window in names
+// as the anchor (on_start / on_ready targets).
+func (b *Builder) BuildWindows(name string, cfg *config.ProjectConfig, root string, names []string) error {
+	if cfg == nil {
+		return fmt.Errorf("window selection requires a project config")
+	}
+	if len(cfg.Windows) == 0 {
+		return fmt.Errorf("project %q has no windows defined", name)
+	}
+	if len(names) == 0 {
+		return fmt.Errorf("no windows specified")
+	}
+
+	windows := make([]config.Window, 0, len(names))
+	for _, n := range names {
+		w, ok := findWindow(cfg, n)
+		if !ok {
+			return fmt.Errorf("window %q not found in config", n)
+		}
+		windows = append(windows, w)
+	}
+
+	firstWin := windows[0]
+	winRoot := windowRoot(firstWin.Root, root)
+
+	if err := b.createDetachedSession(name, winRoot, firstWin.Name); err != nil {
+		return err
+	}
+
+	firstTarget := name + ":" + firstWin.Name
+	var errs []error
+
+	errs = append(errs, b.applySessionSettings(name, cfg, firstTarget)...)
+	errs = append(errs, b.startWindow(name, firstWin, root))
+
+	for _, w := range windows[1:] {
+		wr := windowRoot(w.Root, root)
+		errs = append(errs, b.client.NewWindow(name, NewWindowOpts{Name: w.Name, Root: wr}))
+		errs = append(errs, b.startWindow(name, w, root))
+	}
+
+	errs = append(errs, b.client.SelectWindow(name, firstWin.Name))
+	errs = append(errs, b.sendOnReady(cfg, firstTarget)...)
+
+	return errors.Join(errs...)
+}
+
 func (b *Builder) applySessionSettings(name string, cfg *config.ProjectConfig, firstWindow string) []error {
 	var errs []error
 
@@ -257,14 +312,6 @@ func (b *Builder) adHocCommand() string {
 	return ""
 }
 
-func (b *Builder) sendAdHocCommand(target string) []error {
-	cmd := b.adHocCommand()
-	if cmd == "" {
-		return nil
-	}
-	return []error{b.client.SendKeys(target, cmd)}
-}
-
 func (b *Builder) sendPaneInit(target string) []error {
 	var errs []error
 	for _, cmd := range b.global.PaneInit {
@@ -285,9 +332,13 @@ func (b *Builder) sendWindowEnv(target string, env map[string]string) []error {
 
 	var errs []error
 	for _, k := range keys {
-		errs = append(errs, b.client.SendKeys(target, fmt.Sprintf("export %s=%s", k, env[k])))
+		errs = append(errs, b.client.SendKeys(target, fmt.Sprintf("export %s='%s'", k, shellEscape(env[k]))))
 	}
 	return errs
+}
+
+func shellEscape(s string) string {
+	return strings.ReplaceAll(s, "'", `'\''`)
 }
 
 func (b *Builder) startWindow(session string, w config.Window, projectRoot string) error {

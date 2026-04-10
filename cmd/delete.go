@@ -35,12 +35,13 @@ func runDelete(_ *cobra.Command, args []string) error {
 }
 
 func runDeleteWith(d *deps, args []string) error {
-	names, err := expandArgs(d, args)
+	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
 	}
 
-	for _, name := range names {
+	for _, arg := range targets {
+		name := arg.Project
 		path := d.store.Path(name)
 
 		if _, _, err := d.store.Load(name); err != nil {

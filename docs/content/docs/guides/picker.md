@@ -12,6 +12,8 @@ The picker combines:
 - **Running** tmux sessions
 - **Configured** projects (files in `~/.config/nux/projects/`)
 
+Entries are **deduplicated by normalized session name** (the same rules as tmux session names: dots and spaces become underscores, and so on). If a config file is named `my.project.yaml` and a session is already running as `my_project`, you see **one** row, using the **project config name** (`my.project`).
+
 Pick an entry to start or attach to it as usual.
 
 ## Backends

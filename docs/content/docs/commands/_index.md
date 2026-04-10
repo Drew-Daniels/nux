@@ -31,13 +31,13 @@ These flags apply to the root `nux` command (starting/attaching sessions):
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--run <command>` | `-x` | Run a command in each pane. Combines with `--layout`/`--panes` and project names. |
+| `--run <command>` | `-x` | Run a command instead of using the project config. Combines with `--layout`/`--panes` and project names. |
 | `--layout <name>` | `-l` | Apply an ad-hoc tmux layout (`tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, or a custom layout string). |
 | `--panes <n>` | `-p` | Number of panes for the ad-hoc layout. Defaults to 2 if only `--layout` is given. |
 | `--no-attach` | | Start session(s) without attaching. Also available on `restart`. |
 | `--dry-run` | | Print the tmux commands nux would execute without actually running them. |
 | `--force` | | Override the nested session guard. By default, nux refuses to start sessions from inside tmux. |
-| `--config <path>` | | Override the config directory path (default: `~/.config/nux`). |
+| `--config-dir <path>` | | Override the config directory path. Both global config and project configs are read from this directory (default: `~/.config/nux`). |
 | `--projects-dir <path>` | | Override the `projects_dir` value from global config at runtime. |
 | `--var key=value` | | Override a custom variable. Repeatable: `--var port=4000 --var env=staging`. |
 
@@ -70,14 +70,14 @@ For projects with a config file, the ad-hoc layout fills in as a fallback for wi
 
 ## Running commands
 
-The `--run` (or `-x`) flag sends a command to the session panes. It composes with project names and ad-hoc layouts:
+The `--run` (or `-x`) flag creates a session that runs the given command instead of using the project config. The project name is still used for directory resolution and session naming, but the config's windows, panes, and commands are bypassed.
 
 ```sh
 # Run a command in the current directory
 nux -x "just dev"
 
-# Run a command in a named project session
-nux -x "fish" blog
+# Run a command in the blog project directory
+nux -x "just dev" blog
 
 # Run a command in every pane of an ad-hoc layout
 nux -x "fish" -l tiled -p 4 blog
@@ -89,6 +89,8 @@ nux -x "just serve" --no-attach
 When combined with `--layout`/`--panes`, the command runs in **every** pane. Without a layout, it runs in the first pane only.
 
 When used without a project name, the session is derived from the current directory (auto-detect) or falls through to the picker.
+
+If you want a command to run in every pane across all sessions (not just ad-hoc ones), use [`pane_init`]({{< relref "/docs/configuration/global-config" >}}) in your global config instead.
 
 ## Nested session guard
 

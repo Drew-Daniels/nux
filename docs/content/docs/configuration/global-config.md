@@ -15,7 +15,7 @@ $XDG_CONFIG_HOME/nux/config.yaml
 
 On most systems this resolves to `~/.config/nux/config.yaml`. If `$XDG_CONFIG_HOME` is set to a custom path, nux uses that instead.
 
-You can override the config directory at runtime with `--config <path>`.
+You can override the config directory at runtime with `--config-dir <path>`. This also changes where nux looks for project configs (`<path>/projects/`).
 
 If the config file does not exist, nux applies built-in defaults silently (no error).
 

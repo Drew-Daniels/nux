@@ -20,8 +20,9 @@ func TestExpandArgs_PlainNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expandArgs: %v", err)
 	}
-	if len(names) != 2 || names[0] != "blog" || names[1] != "api" {
-		t.Errorf("got %v, want [blog api]", names)
+	if len(names) != 2 || names[0].Project != "blog" || names[1].Project != "api" ||
+		names[0].Windows != nil || names[1].Windows != nil {
+		t.Errorf("got %+v, want [blog api] without windows", names)
 	}
 }
 
@@ -35,8 +36,8 @@ func TestExpandArgs_Group(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expandArgs: %v", err)
 	}
-	if len(names) != 2 || names[0] != "alpha" || names[1] != "bravo" {
-		t.Errorf("got %v, want [alpha bravo]", names)
+	if len(names) != 2 || names[0].Project != "alpha" || names[1].Project != "bravo" {
+		t.Errorf("got %+v, want [alpha bravo]", names)
 	}
 }
 
@@ -54,8 +55,20 @@ func TestExpandArgs_ColonTarget(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expandArgs: %v", err)
 	}
-	if len(names) != 1 || names[0] != "blog" {
-		t.Errorf("got %v, want [blog]", names)
+	if len(names) != 1 || names[0].Project != "blog" || len(names[0].Windows) != 1 || names[0].Windows[0] != "editor" {
+		t.Errorf("got %+v, want blog + [editor]", names)
+	}
+}
+
+func TestExpandArgs_MultiWindowTarget(t *testing.T) {
+	d := testDeps(t)
+	names, err := expandArgs(d, []string{"blog: editor , server "})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 1 || names[0].Project != "blog" || len(names[0].Windows) != 2 ||
+		names[0].Windows[0] != "editor" || names[0].Windows[1] != "server" {
+		t.Errorf("got %+v, want blog + [editor server]", names)
 	}
 }
 
@@ -162,6 +175,50 @@ func TestRunSessions_WithRunCommand(t *testing.T) {
 	}
 }
 
+func TestRunSessions_RunCommand_SkipsProjectConfig(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.run = "fish"
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "fish"})
+
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	})
+
+	err := runSessions(d, []string{"blog"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession")
+	}
+
+	foundFish := false
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "fish" {
+			foundFish = true
+		}
+	}
+	if !foundFish {
+		t.Error("expected SendKeys with fish")
+	}
+
+	if mock.Called("NewWindow") {
+		t.Error("--run should skip project config windows")
+	}
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "nvim" {
+			t.Error("--run should not send project config commands")
+		}
+	}
+}
+
 func TestTryAutoDetect_InsideProjectsDir(t *testing.T) {
 	d := testDeps(t)
 	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
@@ -210,6 +267,23 @@ func TestCollectPickerItems(t *testing.T) {
 	}
 	if !seen["blog"] || !seen["api"] || !seen["scratch"] {
 		t.Errorf("missing expected items: %v", items)
+	}
+}
+
+func TestCollectPickerItems_DedupesNormalizedNames(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("my.project", &config.ProjectConfig{Command: "a"})
+	mock := d.client.(*tmux.MockClient)
+	mock.ListSessionsReturn = []tmux.SessionInfo{
+		{Name: "my_project"},
+	}
+
+	items := collectPickerItems(d)
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %v", items)
+	}
+	if items[0] != "my.project" {
+		t.Fatalf("got %q, want my.project (project name wins over tmux session name)", items[0])
 	}
 }
 
@@ -455,6 +529,103 @@ func TestRunSessions_ResolveError(t *testing.T) {
 	err := runSessions(d, []string{"nonexistent"})
 	if err == nil {
 		t.Fatal("expected error from resolve failure")
+	}
+}
+
+func TestRunSessions_Subset_NewSession_UserOrder(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
+		},
+	})
+
+	err := runSessions(d, []string{"blog:server,editor"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	var first *tmux.NewSessionOpts
+	for _, c := range mock.Calls {
+		if c.Method == "NewSession" && c.Opts != nil {
+			if o, ok := c.Opts.(tmux.NewSessionOpts); ok {
+				first = &o
+				break
+			}
+		}
+	}
+	if first == nil || first.Window != "server" {
+		t.Errorf("first NewSession window = %v, want server", first)
+	}
+}
+
+func TestRunSessions_Subset_Existing_SelectsWindow(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+		},
+	})
+
+	err := runSessions(d, []string{"blog:editor"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "SelectWindow" && len(c.Args) >= 2 && c.Args[0] == "blog" && c.Args[1] == "editor" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected SelectWindow for blog:editor")
+	}
+	if mock.Called("NewSession") {
+		t.Error("should not create session when it already exists")
+	}
+}
+
+func TestRunSessions_Subset_AdhocFlagsError(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.run = "fish"
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root: d.global.ProjectsDir,
+		Windows: []config.Window{
+			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
+		},
+	})
+
+	err := runSessions(d, []string{"blog:editor"})
+	if err == nil {
+		t.Fatal("expected error when combining --run with :window")
+	}
+	if !strings.Contains(err.Error(), "cannot combine") {
+		t.Errorf("error = %q", err.Error())
+	}
+}
+
+func TestRunSessions_Subset_CommandOnlyConfigError(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	_ = d.store.Save("blog", &config.ProjectConfig{
+		Root:    d.global.ProjectsDir,
+		Command: "vim",
+	})
+
+	err := runSessions(d, []string{"blog:editor"})
+	if err == nil {
+		t.Fatal("expected error for command-only project with :window")
 	}
 }
 

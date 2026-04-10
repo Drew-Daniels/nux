@@ -16,7 +16,7 @@ nux manages tmux sessions declaratively through project configs, with a unified 
 - **Declarative YAML configs** - familiar format for tmuxinator users, with lifecycle hooks, environment variables, and custom variables
 - **Interactive picker** - fuzzy finder integration (fzf/gum) for session selection
 - **Zoxide integration** - smart directory discovery as a resolver fallback
-- **Selective window restart** - restart individual windows without tearing down the session (`nux restart blog:editor`)
+- **Selective windows** - start or restart only the windows you name (`nux blog:editor`, `nux blog:editor,server`, `nux restart blog:editor`)
 - **Pane split direction** - control whether panes split horizontally or vertically per-pane in config
 - **Config inspector** - `nux show` prints the fully resolved config after interpolation and variable expansion
 - **Dry-run mode** - preview tmux commands without executing
@@ -63,10 +63,11 @@ nux blog api docs
 # Start all sessions in a group
 nux @work
 
-# Run a command in the session
+# Run a command instead of the project config
 nux -x "just dev"
+nux -x "just dev" blog
 
-# Run a command in every pane of an ad-hoc layout
+# Ad-hoc layout with a command in every pane
 nux -x "fish" -l tiled -p 4 blog
 
 # Open interactive picker
@@ -82,6 +83,9 @@ nux restart blog
 
 # Restart just one window
 nux restart blog:editor
+
+# Start only certain windows (comma-separated, in that order)
+nux blog:editor,server
 
 # List available projects
 nux list

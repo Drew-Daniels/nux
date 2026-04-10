@@ -48,11 +48,12 @@ func (o *options) editor() string {
 var opts options
 
 type deps struct {
-	global   *config.GlobalConfig
-	client   tmux.Client
-	builder  *tmux.Builder
-	resolver *resolver.Resolver
-	store    config.ProjectStore
+	global        *config.GlobalConfig
+	client        tmux.Client
+	builder       *tmux.Builder
+	resolver      *resolver.Resolver
+	store         config.ProjectStore
+	projectCfgDir string
 
 	noAttach    bool
 	force       bool
@@ -91,6 +92,7 @@ directory, nux opens an interactive picker (if configured).`,
   nux @work                     # start all sessions in the "work" group
   nux web+                      # start all projects matching "web*"
   nux blog:editor               # start only the "editor" window
+  nux blog:editor,server        # start only those windows (in this order)
   nux -x "just dev"             # run a command in the current directory
   nux -x "fish" blog            # run fish in the blog session
   nux -l tiled -p 4             # 4 equal panes in the current directory
@@ -112,7 +114,7 @@ func Execute() {
 
 func init() {
 	rootCmd.RunE = runRoot
-	rootCmd.Flags().StringVarP(&opts.run, "run", "x", "", "run a command in each pane (combines with --layout/--panes and project names)")
+	rootCmd.Flags().StringVarP(&opts.run, "run", "x", "", "run a command instead of the project config")
 	rootCmd.Flags().StringVarP(&opts.layout, "layout", "l", "", "ad-hoc tmux layout (e.g. tiled, even-horizontal)")
 	_ = rootCmd.RegisterFlagCompletionFunc("layout", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{
@@ -128,10 +130,11 @@ func init() {
 	rootCmd.Flags().BoolVar(&opts.noAttach, "no-attach", false, "start session(s) without attaching")
 	rootCmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print tmux commands without executing")
 	rootCmd.Flags().BoolVar(&opts.force, "force", false, "override nested session prevention")
-	rootCmd.Flags().StringVar(&opts.configDir, "config", "", "override config directory path")
+	rootCmd.Flags().StringVar(&opts.configDir, "config-dir", "", "override config directory path (global config and project configs)")
 	rootCmd.Flags().StringVar(&opts.projectsDir, "projects-dir", "", "override projects directory path")
 
 	restartCmd.Flags().AddFlag(rootCmd.Flag("no-attach"))
+	restartCmd.Flags().StringArrayVar(&opts.vars, "var", nil, "override a custom variable (key=value, repeatable)")
 
 	rootCmd.AddCommand(stopAllCmd)
 }
@@ -158,7 +161,13 @@ func setup() (*deps, error) {
 	client := tmux.NewRealClient()
 	client.DryRun = opts.dryRun
 
-	store := config.DefaultProjectStore()
+	var projectCfgDir string
+	if opts.configDir != "" {
+		projectCfgDir = filepath.Join(opts.configDir, "projects")
+	} else {
+		projectCfgDir = config.ProjectConfigDir()
+	}
+	store := config.NewProjectStore(projectCfgDir)
 	builder := tmux.NewBuilder(client, global)
 	res := resolver.NewResolverWithStore(global, store)
 
@@ -170,27 +179,28 @@ func setup() (*deps, error) {
 	prompter := &ui.Prompter{In: stdin, Out: stdout}
 
 	d := &deps{
-		global:      global,
-		client:      client,
-		builder:     builder,
-		resolver:    res,
-		store:       store,
-		noAttach:    opts.noAttach,
-		force:       opts.force,
-		deleteForce: opts.deleteForce,
-		run:         opts.run,
-		layout:      opts.layout,
-		panes:       opts.panes,
-		editor:      editor,
-		vars:        parseVars(opts.vars, stderr),
-		stdin:       stdin,
-		stdout:      stdout,
-		stderr:      stderr,
-		getwd:       os.Getwd,
-		confirm:     prompter.Confirm,
-		newPicker:   picker.New,
-		execCmd:     exec.Command,
-		help:        rootCmd.Help,
+		global:        global,
+		client:        client,
+		builder:       builder,
+		resolver:      res,
+		store:         store,
+		projectCfgDir: projectCfgDir,
+		noAttach:      opts.noAttach,
+		force:         opts.force,
+		deleteForce:   opts.deleteForce,
+		run:           opts.run,
+		layout:        opts.layout,
+		panes:         opts.panes,
+		editor:        editor,
+		vars:          parseVars(opts.vars, stderr),
+		stdin:         stdin,
+		stdout:        stdout,
+		stderr:        stderr,
+		getwd:         os.Getwd,
+		confirm:       prompter.Confirm,
+		newPicker:     picker.New,
+		execCmd:       exec.Command,
+		help:          rootCmd.Help,
 	}
 	d.openEditor = func(path string) error {
 		return openInEditor(d, path)

@@ -6,40 +6,61 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Drew-Daniels/nux/internal/config"
 	"github.com/Drew-Daniels/nux/internal/resolver"
 )
 
 func runSessions(d *deps, args []string) error {
-	names, err := expandArgs(d, args)
+	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
 	}
 
-	for i, name := range names {
-		result, err := d.resolver.Resolve(name)
+	if err := validateAdhocSubset(d, targets); err != nil {
+		return err
+	}
+
+	for i, arg := range targets {
+		result, err := d.resolver.Resolve(arg.Project)
 		if err != nil {
 			return err
 		}
 
-		if len(d.vars) > 0 && result.Config != nil {
-			if result.Config.Vars == nil {
-				result.Config.Vars = make(map[string]string)
+		cfg := result.Config
+
+		// -x opts out of the project config: the project name is only
+		// used for directory resolution and session naming.
+		if d.run != "" {
+			cfg = nil
+		}
+
+		if err := applyVarOverrides(d, cfg); err != nil {
+			return err
+		}
+
+		if arg.Windows != nil {
+			if err := validateSubsetConfig(cfg, result.Name); err != nil {
+				return err
 			}
-			for k, v := range d.vars {
-				result.Config.Vars[k] = v
+			if !d.client.HasSession(result.Name) {
+				if err := d.builder.BuildWindows(result.Name, cfg, result.Root, arg.Windows); err != nil {
+					return fmt.Errorf("building session %q: %w", result.Name, err)
+				}
+			} else {
+				focus := arg.Windows[0]
+				if err := d.client.SelectWindow(result.Name, focus); err != nil {
+					return fmt.Errorf("selecting window %q: %w", focus, err)
+				}
 			}
-			if err := d.resolver.Interpolator.InterpolateVars(result.Config); err != nil {
-				return fmt.Errorf("interpolation failed: %w", err)
+		} else {
+			if !d.client.HasSession(result.Name) {
+				if err := d.builder.Build(result.Name, cfg, result.Root); err != nil {
+					return fmt.Errorf("building session %q: %w", result.Name, err)
+				}
 			}
 		}
 
-		if !d.client.HasSession(result.Name) {
-			if err := d.builder.Build(result.Name, result.Config, result.Root); err != nil {
-				return fmt.Errorf("building session %q: %w", result.Name, err)
-			}
-		}
-
-		isLast := i == len(names)-1
+		isLast := i == len(targets)-1
 		if !d.noAttach && isLast {
 			return d.client.AttachSession(result.Name)
 		}
@@ -47,7 +68,50 @@ func runSessions(d *deps, args []string) error {
 	return nil
 }
 
-func expandArgs(d *deps, args []string) ([]string, error) {
+func applyVarOverrides(d *deps, cfg *config.ProjectConfig) error {
+	if len(d.vars) == 0 || cfg == nil {
+		return nil
+	}
+	if cfg.Vars == nil {
+		cfg.Vars = make(map[string]string)
+	}
+	for k, v := range d.vars {
+		cfg.Vars[k] = v
+	}
+	if err := d.resolver.Interpolator.InterpolateVars(cfg); err != nil {
+		return fmt.Errorf("interpolation failed: %w", err)
+	}
+	return nil
+}
+
+func validateSubsetConfig(cfg *config.ProjectConfig, sessionName string) error {
+	if cfg == nil {
+		return fmt.Errorf("window selection requires a project config with windows for %q", sessionName)
+	}
+	if len(cfg.Windows) == 0 {
+		return fmt.Errorf("project %q has no windows defined (use `nux` without :window)", sessionName)
+	}
+	return nil
+}
+
+func validateAdhocSubset(d *deps, targets []sessionArg) error {
+	var hasSubset bool
+	for _, t := range targets {
+		if t.Windows != nil {
+			hasSubset = true
+			break
+		}
+	}
+	if !hasSubset {
+		return nil
+	}
+	if d.run != "" || d.layout != "" || d.panes != 0 {
+		return fmt.Errorf("cannot combine --run, --layout, or --panes with project:window targets")
+	}
+	return nil
+}
+
+func expandArgs(d *deps, args []string) ([]sessionArg, error) {
 	var sessionNames []string
 	for _, arg := range args {
 		if strings.Contains(arg, "+") {
@@ -59,7 +123,7 @@ func expandArgs(d *deps, args []string) ([]string, error) {
 		}
 	}
 
-	var names []string
+	var targets []sessionArg
 	for _, arg := range args {
 		switch {
 		case strings.HasPrefix(arg, "@"):
@@ -68,24 +132,31 @@ func expandArgs(d *deps, args []string) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			names = append(names, members...)
+			for _, m := range members {
+				targets = append(targets, sessionArg{Project: m})
+			}
 
 		case strings.Contains(arg, "+"):
 			matches, err := d.resolver.ExpandGlob(arg, sessionNames)
 			if err != nil {
 				return nil, err
 			}
-			names = append(names, matches...)
+			for _, m := range matches {
+				targets = append(targets, sessionArg{Project: m})
+			}
 
 		case strings.Contains(arg, ":"):
-			project, _ := ParseTarget(arg)
-			names = append(names, project)
+			sa, err := parseSessionToken(arg)
+			if err != nil {
+				return nil, err
+			}
+			targets = append(targets, sa)
 
 		default:
-			names = append(names, arg)
+			targets = append(targets, sessionArg{Project: arg})
 		}
 	}
-	return names, nil
+	return targets, nil
 }
 
 func tryAutoDetect(d *deps) (*resolver.Result, bool) {
@@ -107,8 +178,12 @@ func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 
 func runBareNux(d *deps) error {
 	if result, ok := tryAutoDetect(d); ok {
+		cfg := result.Config
+		if d.run != "" {
+			cfg = nil
+		}
 		if !d.client.HasSession(result.Name) {
-			if err := d.builder.Build(result.Name, result.Config, result.Root); err != nil {
+			if err := d.builder.Build(result.Name, cfg, result.Root); err != nil {
 				return fmt.Errorf("building session: %w", err)
 			}
 		}
@@ -141,21 +216,25 @@ func runBareNux(d *deps) error {
 }
 
 func collectPickerItems(d *deps) []string {
+	// Dedupe by normalized session name so e.g. config "my.project" and tmux
+	// session "my_project" count as one entry (project name preferred).
 	seen := make(map[string]bool)
 	var items []string
 
 	projects, _ := d.store.List()
 	for _, p := range projects {
-		if !seen[p.Name] {
-			seen[p.Name] = true
+		k := config.NormalizeSessionName(p.Name)
+		if !seen[k] {
+			seen[k] = true
 			items = append(items, p.Name)
 		}
 	}
 
 	sessions, _ := d.client.ListSessions()
 	for _, s := range sessions {
-		if !seen[s.Name] {
-			seen[s.Name] = true
+		k := config.NormalizeSessionName(s.Name)
+		if !seen[k] {
+			seen[k] = true
 			items = append(items, s.Name)
 		}
 	}
