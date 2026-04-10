@@ -8,6 +8,11 @@ pre-commit:
     lint:
       run: golangci-lint run
       priority: 2
+    schemas:
+      glob: "internal/config/types.go"
+      stage_fixed: true
+      run: go run ./internal/config/gen
+      priority: 3
     gitleaks:
       run: gitleaks protect --staged --verbose
 
