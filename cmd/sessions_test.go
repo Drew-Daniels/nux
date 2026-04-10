@@ -353,6 +353,68 @@ func TestRunBareNux_WithRunCommand(t *testing.T) {
 	}
 }
 
+func TestRunBareNux_AdHocLayoutOutsideProjectsDir(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.layout = "tiled"
+	d.panes = 4
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Layout: "tiled", Panes: 4})
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession for ad-hoc layout from cwd")
+	}
+}
+
+func TestRunBareNux_RunCommandOutsideProjectsDir(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.run = "just dev"
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "just dev"})
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession for --run from cwd")
+	}
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "just dev" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SendKeys with run command")
+	}
+}
+
+func TestRunBareNux_NoFlagsOutsideProjectsDir_ShowsHelp(t *testing.T) {
+	d := testDeps(t)
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+
+	helpCalled := false
+	d.help = func() error { helpCalled = true; return nil }
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+	if !helpCalled {
+		t.Error("expected help when no ad-hoc flags and outside projects dir")
+	}
+}
+
 func TestOpenInEditor(t *testing.T) {
 	d := testDeps(t)
 	d.editor = "echo"

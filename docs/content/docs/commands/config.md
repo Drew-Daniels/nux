@@ -20,19 +20,22 @@ The generated scaffold contains all available settings with sensible defaults. O
 **When no config exists:**
 
 1. The config directory and `projects/` subdirectory are created.
-2. A scaffold `config.yaml` is written with default values and commented examples.
+2. A scaffold `config.yaml` is written with default values, commented examples, and a [schema modeline]({{< relref "/docs/configuration/editor-intellisense" >}}) for editor IntelliSense.
 3. nux prints `Created <path>`.
-4. The file is opened in `$EDITOR`.
+4. If `$EDITOR` is set, the file is opened in your editor. Otherwise nux prints `hint: set $EDITOR to open new configs automatically`.
 
 **When a config already exists:**
 
-1. The file is opened in `$EDITOR`.
+1. If `$EDITOR` is set, the file is opened in your editor. Otherwise nux prints a hint.
 
 ## Generated scaffold
 
-The scaffold includes all global options:
+The scaffold includes a schema modeline and all global options:
 
 ```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Drew-Daniels/nux/main/schemas/global.schema.json
+# nux global configuration
+
 # Base directory for project discovery (supports ~ expansion).
 projects_dir: ~/projects
 

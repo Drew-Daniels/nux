@@ -20,7 +20,7 @@ nux provides subcommands for managing sessions, projects, and your environment. 
 | [`nux config`]({{< relref "config" >}}) | Open or create the global config file |
 | [`nux new`]({{< relref "new" >}}) | Create a new project config file |
 | [`nux edit`]({{< relref "edit" >}}) | Open a project config in `$EDITOR` |
-| [`nux delete`]({{< relref "delete" >}}) | Delete a project config file |
+| [`nux delete`]({{< relref "delete" >}}) / `nux del` | Delete one or more project configs |
 | [`nux reset`]({{< relref "reset" >}}) | Remove the global config and start fresh |
 | [`nux validate`]({{< relref "validate" >}}) | Validate project configs for structural errors |
 | [`nux doctor`]({{< relref "doctor" >}}) | Run environment diagnostics |
@@ -37,7 +37,7 @@ These flags apply to the root `nux` command (starting/attaching sessions):
 | `--layout <name>` | `-l` | Apply an ad-hoc tmux layout (`tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, or a custom layout string). |
 | `--panes <n>` | `-p` | Number of panes for the ad-hoc layout. Defaults to 2 if only `--layout` is given. |
 | `--no-attach` | | Start session(s) without attaching. Also available on `restart`. |
-| `--dry-run` | | Print the tmux commands nux would execute without actually running them. |
+| `--dry-run` | | Print the tmux commands nux would execute without actually running them. Still queries tmux for session state. |
 | `--force` | | Override the nested session guard. By default, nux refuses to start sessions from inside tmux. |
 | `--config-dir <path>` | | Override the config directory path. Both global config and project configs are read from this directory (default: `~/.config/nux`). |
 | `--projects-dir <path>` | | Override the `projects_dir` value from global config at runtime. |
@@ -52,7 +52,7 @@ cd ~/projects/blog
 nux
 ```
 
-If the current directory is not under `projects_dir`, nux falls through to the picker (if enabled) or prints help.
+If the current directory is not under `projects_dir` and no ad-hoc flags are set, nux falls through to the picker (if enabled) or prints help. When `--layout`, `--panes`, or `--run` are set, nux creates a session from the current directory regardless of `projects_dir`.
 
 ## Ad-hoc layouts
 
@@ -90,7 +90,9 @@ nux -x "just serve" --no-attach
 
 When combined with `--layout`/`--panes`, the command runs in **every** pane. Without a layout, it runs in the first pane only.
 
-When used without a project name, the session is derived from the current directory (auto-detect) or falls through to the picker.
+When used without a project name, the session is derived from the current directory. This works from any directory - the directory does not need to be under `projects_dir`.
+
+`--var` has no effect when `--run` is used. nux prints a warning if both are specified.
 
 If you want a command to run in every pane across all sessions (not just ad-hoc ones), use [`pane_init`]({{< relref "/docs/configuration/global-config" >}}) in your global config instead.
 

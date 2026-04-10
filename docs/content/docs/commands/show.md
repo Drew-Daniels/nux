@@ -19,7 +19,8 @@ If the project has no config file (resolved via `projects_dir` or zoxide), nux p
 
 | Flag | Meaning |
 |------|---------|
-| `--var key=value` | Override a custom variable. Repeatable. |
+| `--var key=value` | Override a custom variable. Repeatable. Ignored with `--raw`. |
+| `--raw` | Print the config before interpolation (no variable or env expansion). Useful for inspecting configs that contain secrets. |
 
 ## Output fields
 
@@ -27,7 +28,7 @@ If the project has no config file (resolved via `projects_dir` or zoxide), nux p
 |-------|-------------|
 | `name` | Normalized tmux session name |
 | `root` | Resolved project root directory |
-| `source` | How the project was resolved: `project`, `directory`, or `zoxide` |
+| `source` | How the project was resolved: `project`, `directory`, or `zoxide`. With `--raw`, this shows the config file path. |
 | `config` | Full resolved config (omitted when no config file exists) |
 
 ## Examples
@@ -67,8 +68,15 @@ source: directory
 nux show blog --var port=4000
 ```
 
+```sh
+# Show the raw config without interpolation (secrets stay unexpanded)
+nux show blog --raw
+```
+
 ## Notes
 
 - This command never starts or attaches to a session. It is read-only.
 - Useful for debugging `{{var}}` interpolation, backtick command expansion, and root resolution.
+- Use `--raw` to inspect configs that contain secrets in `env` or `vars` without expanding them into terminal output.
+- `--raw` only works for projects that have a config file.
 - Shell completions suggest project names from config files.

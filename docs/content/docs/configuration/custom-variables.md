@@ -44,7 +44,9 @@ nux --var port=4000 blog
 nux --var port=4000 --var env=staging blog
 ```
 
-The `--var` flag is repeatable. CLI values take precedence over the YAML `vars` block for the same key.
+The `--var` flag is repeatable. CLI values take precedence over the YAML `vars` block for the same key. Malformed entries without `=` (e.g. `--var PORT`) are ignored with a warning.
+
+`--var` is ignored when using `--run` / `-x` since no project config is loaded.
 
 ## Dynamic values with backticks
 

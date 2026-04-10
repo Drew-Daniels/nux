@@ -6,27 +6,32 @@ weight: 8
 ## Usage
 
 ```text
-nux delete <name>
+nux delete <name> [name ...]
 ```
+
+**Alias:** `nux del`
 
 ## Description
 
-Deletes the project config file for `<name>`. By default, nux prompts for confirmation before deleting.
+Deletes one or more project config files. By default, nux prompts for confirmation before each deletion.
 
-This only removes the config file at `~/.config/nux/projects/<name>.yaml`. It does **not** delete the project directory, source code, or stop any running sessions.
+This only removes config files at `~/.config/nux/projects/<name>.yaml`. It does **not** delete project directories, source code, or stop any running sessions.
+
+Supports [glob patterns]({{< relref "/docs/guides/pattern-matching" >}}) with `+` and [group expansion]({{< relref "/docs/configuration/session-groups" >}}) with `@`.
 
 ## Flags
 
 | Flag | Meaning |
 |------|---------|
-| `--force` | Skip the confirmation prompt |
+| `--force` | Skip confirmation prompts |
 
 ## Behavior
 
-1. nux checks that `~/.config/nux/projects/<name>.yaml` exists.
-2. Unless `--force` is set, nux prompts: `Delete config for "<name>"? [y/N]`
-3. If confirmed, the file is deleted and nux prints `Deleted config for "<name>"`.
-4. If declined, nux prints `Cancelled.` and exits cleanly.
+1. Arguments are expanded (patterns and groups resolved to individual names).
+2. For each target, nux checks that the config file exists.
+3. Unless `--force` is set, nux prompts: `Delete config for "<name>"? [y/N]`
+4. If confirmed, the file is deleted and nux prints `Deleted config for "<name>"`.
+5. If declined, nux prints `Cancelled.` and moves on to the next target.
 
 ## Errors
 
@@ -40,6 +45,15 @@ nux delete old-project
 
 # Delete without prompting
 nux delete old-project --force
+
+# Delete multiple projects
+nux delete blog api docs
+
+# Delete all projects matching a pattern
+nux del web+ --force
+
+# Delete all projects in a group
+nux del @deprecated --force
 ```
 
 ## Notes

@@ -10,6 +10,8 @@ JSON Schemas ship in the nux repository for both config types:
 
 Point your YAML language server at these schemas to get completion, validation, and hover docs in your editor.
 
+`nux config` and `nux new` automatically include the appropriate schema modeline in generated files. For existing configs or manual setup, use one of the methods below.
+
 ## 1. Inline modeline
 
 Add a modeline at the top of any config file:

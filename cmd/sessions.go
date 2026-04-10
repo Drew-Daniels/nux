@@ -190,6 +190,30 @@ func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 	return result, true
 }
 
+func hasAdHocFlags(d *deps) bool {
+	return d.layout != "" || d.panes != 0 || d.run != ""
+}
+
+func runFromCwd(d *deps) error {
+	cwd, err := d.getwd()
+	if err != nil {
+		return fmt.Errorf("getting current directory: %w", err)
+	}
+	name := config.NormalizeSessionName(filepath.Base(cwd))
+	result := &resolver.Result{
+		Name:         name,
+		Root:         cwd,
+		ConfigSource: "directory",
+	}
+	if err := buildIfAbsent(d, result); err != nil {
+		return err
+	}
+	if !d.noAttach {
+		return d.client.AttachSession(result.Name)
+	}
+	return nil
+}
+
 func runBareNux(d *deps) error {
 	if result, ok := tryAutoDetect(d); ok {
 		if err := buildIfAbsent(d, result); err != nil {
@@ -199,6 +223,10 @@ func runBareNux(d *deps) error {
 			return d.client.AttachSession(result.Name)
 		}
 		return nil
+	}
+
+	if hasAdHocFlags(d) {
+		return runFromCwd(d)
 	}
 
 	if d.global.PickerOnBare {

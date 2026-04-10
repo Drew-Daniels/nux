@@ -20,9 +20,13 @@ Using `+` avoids **shell glob expansion**. You do not need to quote patterns; `n
 
 ## What gets matched
 
-Patterns match against project names from **config files** (`~/.config/nux/projects/*.yaml`). Convention-based projects (directories under `projects_dir` without config files) and zoxide entries are not included in pattern matching.
+Patterns match against three sources:
 
-Results are sorted alphabetically.
+1. **Config files** - project names from `~/.config/nux/projects/*.yaml`
+2. **Directories** - directory names under `projects_dir`
+3. **Running sessions** - active tmux session names
+
+Duplicates are removed (e.g. a project with both a config file and a directory counts once). Zoxide-only entries are not included. Results are sorted alphabetically.
 
 ## Commands that support patterns
 
@@ -36,7 +40,7 @@ Results are sorted alphabetically.
 If no projects match the pattern, nux reports:
 
 ```text
-no projects matched pattern: <pattern>
+no projects or sessions matched pattern: <pattern>
 ```
 
 ## Examples

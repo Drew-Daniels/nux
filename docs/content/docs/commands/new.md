@@ -13,9 +13,10 @@ nux new <name>
 
 Creates a new project config file at `~/.config/nux/projects/<name>.yaml` and opens it in `$EDITOR` if set.
 
-The generated config contains a minimal template:
+The generated config includes a [schema modeline]({{< relref "/docs/configuration/editor-intellisense" >}}) for editor IntelliSense and a minimal template:
 
 ```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Drew-Daniels/nux/main/schemas/project.schema.json
 windows:
   - name: editor
 ```
@@ -28,7 +29,7 @@ Edit this file to define your windows, panes, commands, and other project settin
 2. The config file is written to disk.
 3. nux prints `Created <path>`.
 4. If `$EDITOR` is set, nux opens the new file in your editor.
-5. If `$EDITOR` is not set, nux returns silently after creating the file.
+5. If `$EDITOR` is not set, nux prints `hint: set $EDITOR to open new configs automatically`.
 
 ## Errors
 
