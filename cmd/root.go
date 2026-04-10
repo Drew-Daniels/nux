@@ -91,11 +91,11 @@ directory, nux opens an interactive picker (if configured).`,
   nux @work                     # start all sessions in the "work" group
   nux web+                      # start all projects matching "web*"
   nux blog:editor               # start only the "editor" window
-  nux --run "just dev"          # ephemeral session with a command
-  nux --run "just dev" --no-attach
+  nux -x "just dev"             # run a command in the current directory
+  nux -x "fish" blog            # run fish in the blog session
   nux -l tiled -p 4             # 4 equal panes in the current directory
   nux myproject -l main-vertical -p 3
-  nux -x "make watch" -l even-horizontal -p 2`,
+  nux -x "fish" -l tiled -p 4 blog  # fish in each of 4 tiled panes`,
 	Args:              cobra.ArbitraryArgs,
 	DisableAutoGenTag: true,
 	CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
@@ -112,7 +112,7 @@ func Execute() {
 
 func init() {
 	rootCmd.RunE = runRoot
-	rootCmd.Flags().StringVarP(&opts.run, "run", "x", "", "start an ephemeral session with the given command")
+	rootCmd.Flags().StringVarP(&opts.run, "run", "x", "", "run a command in each pane (combines with --layout/--panes and project names)")
 	rootCmd.Flags().StringVarP(&opts.layout, "layout", "l", "", "ad-hoc tmux layout (e.g. tiled, even-horizontal)")
 	_ = rootCmd.RegisterFlagCompletionFunc("layout", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{
@@ -209,10 +209,6 @@ func runRoot(_ *cobra.Command, args []string) error {
 	}
 	d.builder.SetAdHocLayout(adHocLayoutFromDeps(d))
 
-	if d.run != "" {
-		return runEphemeral(d)
-	}
-
 	if len(args) > 0 {
 		if sub, ok := matchSubcommand(args[0]); ok {
 			return sub.RunE(sub, args[1:])
@@ -277,8 +273,8 @@ func validateLayoutFlags(d *deps) error {
 }
 
 func adHocLayoutFromDeps(d *deps) *tmux.AdHocLayout {
-	if d.layout == "" && d.panes == 0 {
+	if d.layout == "" && d.panes == 0 && d.run == "" {
 		return nil
 	}
-	return &tmux.AdHocLayout{Layout: d.layout, Panes: d.panes}
+	return &tmux.AdHocLayout{Layout: d.layout, Panes: d.panes, Command: d.run}
 }

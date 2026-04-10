@@ -11,10 +11,11 @@ import (
 	"github.com/Drew-Daniels/nux/internal/config"
 )
 
-// AdHocLayout holds layout overrides from CLI flags (--layout, --panes).
+// AdHocLayout holds overrides from CLI flags (--layout, --panes, --run).
 type AdHocLayout struct {
-	Layout string
-	Panes  int
+	Layout  string
+	Panes   int
+	Command string
 }
 
 type Builder struct {
@@ -45,8 +46,8 @@ func (b *Builder) resolveIndices() {
 	b.indexResolved = true
 }
 
-// SetAdHocLayout configures a layout override for the next Build or
-// BuildEphemeral call. Pass nil to clear.
+// SetAdHocLayout configures a layout override for the next Build call.
+// Pass nil to clear.
 func (b *Builder) SetAdHocLayout(layout *AdHocLayout) {
 	b.adHocLayout = layout
 }
@@ -85,12 +86,12 @@ func (b *Builder) Build(name string, cfg *config.ProjectConfig, root string) err
 func (b *Builder) buildDefault(name, root string) error {
 	ds := b.global.DefaultSession
 
-	if b.adHocLayout != nil && (ds == nil || len(ds.Windows) == 0) {
+	if b.hasAdHocPanes() && (ds == nil || len(ds.Windows) == 0) {
 		return b.buildAdHoc(name, root, ds)
 	}
 
 	if ds == nil {
-		return b.createDetachedSession(name, root, "")
+		return b.buildBare(name, root)
 	}
 
 	if len(ds.Windows) > 0 {
@@ -109,7 +110,25 @@ func (b *Builder) buildDefault(name, root string) error {
 	if ds.Command != "" {
 		errs = append(errs, b.client.SendKeys(firstWindow, ds.Command))
 	}
+	errs = append(errs, b.sendAdHocCommand(firstWindow)...)
 
+	return errors.Join(errs...)
+}
+
+func (b *Builder) buildBare(name, root string) error {
+	if err := b.createDetachedSession(name, root, ""); err != nil {
+		return err
+	}
+
+	cmd := b.adHocCommand()
+	if cmd == "" {
+		return nil
+	}
+
+	firstWindow := name + ":" + b.firstWindow()
+	var errs []error
+	errs = append(errs, b.sendPaneInit(firstWindow)...)
+	errs = append(errs, b.client.SendKeys(firstWindow, cmd))
 	return errors.Join(errs...)
 }
 
@@ -131,12 +150,16 @@ func (b *Builder) buildAdHoc(name, root string, ds *config.DefaultSession) error
 	}
 
 	pb := b.paneBase()
+	cmd := b.adHocCommand()
 	for i := 0; i < b.adHocLayout.Panes; i++ {
 		paneTarget := fmt.Sprintf("%s.%d", target, pb+i)
 		errs = append(errs, b.sendPaneInit(paneTarget)...)
+		if cmd != "" {
+			errs = append(errs, b.client.SendKeys(paneTarget, cmd))
+		}
 	}
 
-	if ds != nil && ds.Command != "" {
+	if cmd == "" && ds != nil && ds.Command != "" {
 		errs = append(errs, b.client.SendKeys(fmt.Sprintf("%s.%d", target, pb), ds.Command))
 	}
 
@@ -223,6 +246,25 @@ func (b *Builder) sendOnReady(cfg *config.ProjectConfig, firstWindow string) []e
 	return errs
 }
 
+func (b *Builder) hasAdHocPanes() bool {
+	return b.adHocLayout != nil && (b.adHocLayout.Layout != "" || b.adHocLayout.Panes > 0)
+}
+
+func (b *Builder) adHocCommand() string {
+	if b.adHocLayout != nil {
+		return b.adHocLayout.Command
+	}
+	return ""
+}
+
+func (b *Builder) sendAdHocCommand(target string) []error {
+	cmd := b.adHocCommand()
+	if cmd == "" {
+		return nil
+	}
+	return []error{b.client.SendKeys(target, cmd)}
+}
+
 func (b *Builder) sendPaneInit(target string) []error {
 	var errs []error
 	for _, cmd := range b.global.PaneInit {
@@ -292,31 +334,6 @@ func (b *Builder) startWindow(session string, w config.Window, projectRoot strin
 	errs = append(errs, b.client.SelectPane(session, w.Name, pb))
 
 	return errors.Join(errs...)
-}
-
-func (b *Builder) BuildEphemeral(name string, command string, root string) error {
-	if err := b.createDetachedSession(name, root, ""); err != nil {
-		return err
-	}
-
-	fw := b.firstWindow()
-	target := name + ":" + fw
-
-	if b.adHocLayout != nil {
-		var errs []error
-		for i := 1; i < b.adHocLayout.Panes; i++ {
-			errs = append(errs, b.client.SplitWindow(name, fw, SplitWindowOpts{Root: root}))
-		}
-		if b.adHocLayout.Layout != "" {
-			errs = append(errs, b.client.SelectLayout(name, fw, b.adHocLayout.Layout))
-		}
-		pb := b.paneBase()
-		errs = append(errs, b.client.SendKeys(fmt.Sprintf("%s.%d", target, pb), command))
-		errs = append(errs, b.client.SelectPane(name, fw, pb))
-		return errors.Join(errs...)
-	}
-
-	return b.client.SendKeys(target, command)
 }
 
 func (b *Builder) StopSession(name string) error {

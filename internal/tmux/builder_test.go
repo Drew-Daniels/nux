@@ -179,20 +179,24 @@ func TestBuild_NilConfig_NoDefaults(t *testing.T) {
 	}
 }
 
-func TestBuildEphemeral(t *testing.T) {
+func TestBuild_RunCommand_NilConfig(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
+	builder.SetAdHocLayout(&AdHocLayout{Command: "go test ./..."})
 
-	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	err := builder.Build("run-test", nil, "/home/user/project")
 	if err != nil {
-		t.Fatalf("BuildEphemeral returned error: %v", err)
+		t.Fatalf("Build returned error: %v", err)
 	}
 
 	assertCalled(t, mock, "NewSession")
 	assertCalledWith(t, mock, "SendKeys", "go test ./...")
 
 	if mock.Called("SetEnv") || mock.Called("SetHook") {
-		t.Error("ephemeral session should not set env or hooks")
+		t.Error("bare session with --run should not set env or hooks")
+	}
+	if mock.Called("SplitWindow") {
+		t.Error("--run without --panes should not split windows")
 	}
 }
 
@@ -448,14 +452,14 @@ func TestBuild_AdHocLayout_FillsEmptyWindowLayout(t *testing.T) {
 	assertCalledWith(t, mock, "SelectLayout", "tiled")
 }
 
-func TestBuildEphemeral_AdHocLayout(t *testing.T) {
+func TestBuild_RunCommand_AdHocLayout(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
-	builder.SetAdHocLayout(&AdHocLayout{Layout: "even-vertical", Panes: 3})
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "even-vertical", Panes: 3, Command: "go test ./..."})
 
-	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	err := builder.Build("run-test", nil, "/home/user/project")
 	if err != nil {
-		t.Fatalf("BuildEphemeral returned error: %v", err)
+		t.Fatalf("Build returned error: %v", err)
 	}
 
 	assertCalled(t, mock, "NewSession")
@@ -466,27 +470,38 @@ func TestBuildEphemeral_AdHocLayout(t *testing.T) {
 	}
 
 	assertCalledWith(t, mock, "SelectLayout", "even-vertical")
-	assertCalledWith(t, mock, "SendKeys", "go test ./...")
 	assertCalled(t, mock, "SelectPane")
+
+	cmdCalls := 0
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "go test ./..." {
+			cmdCalls++
+		}
+	}
+	if cmdCalls != 3 {
+		t.Errorf("expected command sent to 3 panes, got %d", cmdCalls)
+	}
 }
 
-func TestBuildEphemeral_NoAdHocLayout(t *testing.T) {
+func TestBuild_RunCommand_AdHocLayout_OverridesDefaultCommand(t *testing.T) {
 	mock := &MockClient{}
-	builder := newTestBuilder(mock, nil)
+	global := &config.GlobalConfig{
+		DefaultSession: &config.DefaultSession{Command: "htop"},
+	}
+	builder := newTestBuilder(mock, global)
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2, Command: "fish"})
 
-	err := builder.BuildEphemeral("run-test", "go test ./...", "/home/user/project")
+	err := builder.Build("scratch", nil, "/tmp/scratch")
 	if err != nil {
-		t.Fatalf("BuildEphemeral returned error: %v", err)
+		t.Fatalf("Build returned error: %v", err)
 	}
 
-	assertCalledWith(t, mock, "SendKeys", "go test ./...")
-
-	if mock.Called("SplitWindow") {
-		t.Error("ephemeral without ad-hoc layout should not split windows")
+	for _, c := range callsFor(mock, "SendKeys") {
+		if len(c.Args) >= 2 && c.Args[1] == "htop" {
+			t.Error("--run command should override default_session command")
+		}
 	}
-	if mock.Called("SelectLayout") {
-		t.Error("ephemeral without ad-hoc layout should not select a layout")
-	}
+	assertCalledWith(t, mock, "SendKeys", "fish")
 }
 
 func TestBuild_AdHocLayout_BaseIndex1(t *testing.T) {
@@ -524,14 +539,14 @@ func TestBuild_AdHocLayout_BaseIndex1(t *testing.T) {
 	}
 }
 
-func TestBuildEphemeral_BaseIndex1(t *testing.T) {
+func TestBuild_RunCommand_BaseIndex1(t *testing.T) {
 	mock := &MockClient{BaseIndexReturn: 1, PaneBaseIndexReturn: 1}
 	builder := newTestBuilder(mock, nil)
-	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2})
+	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2, Command: "make test"})
 
-	err := builder.BuildEphemeral("run", "make test", "/tmp")
+	err := builder.Build("run", nil, "/tmp")
 	if err != nil {
-		t.Fatalf("BuildEphemeral returned error: %v", err)
+		t.Fatalf("Build returned error: %v", err)
 	}
 
 	for _, c := range callsFor(mock, "SplitWindow") {

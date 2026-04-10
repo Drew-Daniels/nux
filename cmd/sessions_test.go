@@ -131,14 +131,20 @@ func TestRunSessions_WithVarOverrides(t *testing.T) {
 	}
 }
 
-func TestRunEphemeral(t *testing.T) {
+func TestRunSessions_WithRunCommand(t *testing.T) {
 	d := testDeps(t)
-	d.run = "go test ./..."
 	d.noAttach = true
+	d.run = "go test ./..."
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "go test ./..."})
 
-	err := runEphemeral(d)
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := runSessions(d, []string{"blog"})
 	if err != nil {
-		t.Fatalf("runEphemeral: %v", err)
+		t.Fatalf("runSessions: %v", err)
 	}
 
 	mock := d.client.(*tmux.MockClient)
@@ -152,7 +158,7 @@ func TestRunEphemeral(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("expected SendKeys with ephemeral command")
+		t.Error("expected SendKeys with run command")
 	}
 }
 
@@ -242,18 +248,34 @@ func TestRunSessions_AttachesLast(t *testing.T) {
 	}
 }
 
-func TestRunEphemeral_Attaches(t *testing.T) {
+func TestRunBareNux_WithRunCommand(t *testing.T) {
 	d := testDeps(t)
 	d.run = "echo hi"
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "echo hi"})
 
-	err := runEphemeral(d)
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	err := runBareNux(d)
 	if err != nil {
-		t.Fatalf("runEphemeral: %v", err)
+		t.Fatalf("runBareNux: %v", err)
 	}
 
 	mock := d.client.(*tmux.MockClient)
 	if !mock.Called("AttachSession") {
 		t.Error("expected AttachSession")
+	}
+	found := false
+	for _, c := range mock.Calls {
+		if c.Method == "SendKeys" && len(c.Args) >= 2 && c.Args[1] == "echo hi" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SendKeys with run command")
 	}
 }
 

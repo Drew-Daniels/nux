@@ -150,10 +150,12 @@ Check your environment:
 nux doctor
 ```
 
-## Ephemeral sessions
+## Running commands
 
-Start a throwaway session from any directory, no config needed:
+Run a command in the session without writing a config:
 
 ```sh
-nux --run "npm run dev"
+nux -x "just dev"                     # in the current directory
+nux -x "fish" blog                    # in a named project
+nux -x "fish" -l tiled -p 4 blog     # in every pane of an ad-hoc layout
 ```

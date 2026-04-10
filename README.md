@@ -63,8 +63,11 @@ nux blog api docs
 # Start all sessions in a group
 nux @work
 
-# Start with an ephemeral command
-nux --run "just dev"
+# Run a command in the session
+nux -x "just dev"
+
+# Run a command in every pane of an ad-hoc layout
+nux -x "fish" -l tiled -p 4 blog
 
 # Open interactive picker
 nux

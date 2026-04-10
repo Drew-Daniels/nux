@@ -6,21 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Drew-Daniels/nux/internal/config"
 	"github.com/Drew-Daniels/nux/internal/resolver"
 )
-
-func runEphemeral(d *deps) error {
-	cwd, _ := d.getwd()
-	name := config.NormalizeSessionName(filepath.Base(cwd))
-	if err := d.builder.BuildEphemeral(name, d.run, cwd); err != nil {
-		return err
-	}
-	if !d.noAttach {
-		return d.client.AttachSession(name)
-	}
-	return nil
-}
 
 func runSessions(d *deps, args []string) error {
 	names, err := expandArgs(d, args)

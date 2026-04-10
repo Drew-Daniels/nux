@@ -31,7 +31,7 @@ These flags apply to the root `nux` command (starting/attaching sessions):
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--run <command>` | `-x` | Start an ephemeral session that runs the given command in the current directory. No config file needed. |
+| `--run <command>` | `-x` | Run a command in each pane. Combines with `--layout`/`--panes` and project names. |
 | `--layout <name>` | `-l` | Apply an ad-hoc tmux layout (`tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, or a custom layout string). |
 | `--panes <n>` | `-p` | Number of panes for the ad-hoc layout. Defaults to 2 if only `--layout` is given. |
 | `--no-attach` | | Start session(s) without attaching. Also available on `restart`. |
@@ -52,20 +52,6 @@ nux
 
 If the current directory is not under `projects_dir`, nux falls through to the picker (if enabled) or prints help.
 
-## Ephemeral sessions
-
-The `--run` (or `-x`) flag creates a throwaway session from any directory without needing a config file:
-
-```sh
-# Run a dev server in an ephemeral session
-nux --run "npm run dev"
-
-# Start in background
-nux -x "just serve" --no-attach
-```
-
-The session name is derived from the current directory name. Ephemeral sessions show up in `nux ps` like any other session and can be stopped with `nux stop`.
-
 ## Ad-hoc layouts
 
 The `--layout` (`-l`) and `--panes` (`-p`) flags let you create multi-pane sessions on the fly without writing a config file. This is useful when you want a quick layout for a one-off task.
@@ -76,14 +62,33 @@ nux -l tiled -p 4
 
 # 3 panes with a large left pane
 nux myproject -l main-vertical -p 3
-
-# Ephemeral session with 2 side-by-side panes
-nux -x "make watch" -l even-horizontal -p 2
 ```
 
 When only `--layout` is given, `--panes` defaults to 2. When only `--panes` is given, `--layout` defaults to `tiled`.
 
 For projects with a config file, the ad-hoc layout fills in as a fallback for windows that don't specify their own layout. It never overrides a layout already set in the config.
+
+## Running commands
+
+The `--run` (or `-x`) flag sends a command to the session panes. It composes with project names and ad-hoc layouts:
+
+```sh
+# Run a command in the current directory
+nux -x "just dev"
+
+# Run a command in a named project session
+nux -x "fish" blog
+
+# Run a command in every pane of an ad-hoc layout
+nux -x "fish" -l tiled -p 4 blog
+
+# Start in background
+nux -x "just serve" --no-attach
+```
+
+When combined with `--layout`/`--panes`, the command runs in **every** pane. Without a layout, it runs in the first pane only.
+
+When used without a project name, the session is derived from the current directory (auto-detect) or falls through to the picker.
 
 ## Nested session guard
 
