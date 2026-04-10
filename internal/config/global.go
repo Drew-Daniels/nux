@@ -45,3 +45,41 @@ func GlobalDefaults() *GlobalConfig {
 		Zoxide:       false,
 	}
 }
+
+const GlobalSchemaModeline = "# yaml-language-server: $schema=https://raw.githubusercontent.com/Drew-Daniels/nux/main/schemas/global.schema.json\n"
+
+func ScaffoldGlobalConfig() []byte {
+	return []byte(GlobalSchemaModeline + `# nux global configuration
+
+# Base directory for project discovery (supports ~ expansion).
+projects_dir: ~/projects
+
+# Fuzzy finder backend: fzf or gum.
+picker: fzf
+
+# Open the picker when nux is run with no arguments outside a project.
+picker_on_bare: false
+
+# Use zoxide for directory lookup when no config file matches.
+zoxide: false
+
+# Shell to set as tmux default-command for new sessions.
+# default_shell: /bin/zsh
+
+# Commands run in every pane before pane-specific commands.
+# pane_init:
+#   - eval "$(direnv hook zsh)"
+
+# Template for projects without a config file.
+# default_session:
+#   windows:
+#     - name: editor
+#       command: vim
+
+# Named groups for batch operations (e.g. nux @work).
+# groups:
+#   work:
+#     - api
+#     - frontend
+`)
+}

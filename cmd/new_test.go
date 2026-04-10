@@ -37,6 +37,27 @@ func TestRunNewWith_Creates(t *testing.T) {
 	}
 }
 
+func TestRunNewWith_NoEditorHint(t *testing.T) {
+	d := testDeps(t)
+	d.editor = ""
+	d.openEditor = func(path string) error {
+		return openInEditor(d, path)
+	}
+
+	if err := runNewWith(d, []string{"blog"}); err != nil {
+		t.Fatalf("runNewWith: %v", err)
+	}
+
+	if _, _, err := d.store.Load("blog"); err != nil {
+		t.Fatalf("config should exist after creation: %v", err)
+	}
+
+	stderr := stderrStr(d)
+	if !strings.Contains(stderr, "$EDITOR") {
+		t.Errorf("expected hint about $EDITOR in stderr, got %q", stderr)
+	}
+}
+
 func TestRunNewWith_AlreadyExists(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})

@@ -131,7 +131,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&opts.panes, "panes", "p", 0, "number of panes for the ad-hoc layout")
 	rootCmd.Flags().StringArrayVar(&opts.vars, "var", nil, "override a custom variable (key=value, repeatable)")
 	rootCmd.Flags().BoolVar(&opts.noAttach, "no-attach", false, "start session(s) without attaching")
-	rootCmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print tmux commands without executing")
+	rootCmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print tmux commands without executing (still queries tmux for session state)")
 	rootCmd.Flags().BoolVar(&opts.force, "force", false, "override nested session prevention")
 	rootCmd.Flags().StringVar(&opts.configDir, "config-dir", "", "override config directory path (global config and project configs)")
 	rootCmd.Flags().StringVar(&opts.projectsDir, "projects-dir", "", "override projects directory path")

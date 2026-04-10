@@ -106,6 +106,18 @@ If none match, you get this error. Check:
 
 Run `nux doctor` for a full environment check.
 
+## `--dry-run` still talks to tmux
+
+`--dry-run` prints the tmux commands nux would execute, but it still queries the live tmux server for session state (`has-session`) and option values (`base-index`, `pane-base-index`). This keeps the output accurate - it shows whether a session would be created or attached based on real state. If tmux is not running, the dry-run output will reflect that (all sessions treated as new).
+
+## `nux show` displays interpolated values
+
+`nux show` prints the fully resolved config after variable and environment expansion. If your config contains secrets in `env` or `vars`, the expanded values will appear in the output. Use `--raw` to print the config before interpolation:
+
+```sh
+nux show blog --raw
+```
+
 ## tmux version too old
 
 nux requires tmux 3.0 or newer. Check your version:

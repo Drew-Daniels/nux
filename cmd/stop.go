@@ -47,6 +47,9 @@ func runStopWith(d *deps, args []string) error {
 
 	for _, arg := range targets {
 		normalized := config.NormalizeSessionName(arg.Project)
+		if !d.client.HasSession(normalized) {
+			return fmt.Errorf("session %q is not running", arg.Project)
+		}
 		if err := d.builder.StopSession(normalized); err != nil {
 			return fmt.Errorf("stopping session %q: %w", arg.Project, err)
 		}

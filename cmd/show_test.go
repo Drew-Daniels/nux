@@ -65,6 +65,45 @@ func TestRunShowWith_NotFound(t *testing.T) {
 	}
 }
 
+func TestRunShowWith_Raw(t *testing.T) {
+	d := testDeps(t)
+	showRaw = true
+	t.Cleanup(func() { showRaw = false })
+
+	_ = d.store.Save("api", &config.ProjectConfig{
+		Root:    "~/projects/api",
+		Command: "echo {{greeting}} $HOME",
+		Vars:    map[string]string{"greeting": "hi"},
+		Env:     map[string]string{"SECRET": "${API_KEY}"},
+	})
+
+	if err := runShowWith(d, []string{"api"}); err != nil {
+		t.Fatalf("runShowWith --raw: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if !strings.Contains(out, "{{greeting}}") {
+		t.Errorf("expected raw {{greeting}} placeholder preserved, got %q", out)
+	}
+	if !strings.Contains(out, "${API_KEY}") {
+		t.Errorf("expected raw ${API_KEY} preserved, got %q", out)
+	}
+	if !strings.Contains(out, "$HOME") {
+		t.Errorf("expected raw $HOME preserved, got %q", out)
+	}
+}
+
+func TestRunShowWith_Raw_NotFound(t *testing.T) {
+	d := testDeps(t)
+	showRaw = true
+	t.Cleanup(func() { showRaw = false })
+
+	err := runShowWith(d, []string{"missing"})
+	if err == nil {
+		t.Fatal("expected error for missing project with --raw")
+	}
+}
+
 func TestRunShowWith_WithVarOverrides(t *testing.T) {
 	d := testDeps(t)
 	d.vars = map[string]string{"port": "9090"}

@@ -338,7 +338,7 @@ func TestBuild_RunCommand_WithAdHocLayout_OverridesDefaultSessionWindows(t *test
 }
 
 func TestStopSession(t *testing.T) {
-	mock := &MockClient{}
+	mock := &MockClient{HasSessionReturn: true}
 	builder := newTestBuilder(mock, nil)
 
 	err := builder.StopSession("myproj")
@@ -347,6 +347,20 @@ func TestStopSession(t *testing.T) {
 	}
 
 	assertCalledWith(t, mock, "KillSession", "myproj")
+}
+
+func TestStopSession_NotRunning(t *testing.T) {
+	mock := &MockClient{HasSessionReturn: false}
+	builder := newTestBuilder(mock, nil)
+
+	err := builder.StopSession("myproj")
+	if err != nil {
+		t.Fatalf("StopSession returned error: %v", err)
+	}
+
+	if mock.Called("KillSession") {
+		t.Error("should not call KillSession when session is not running")
+	}
 }
 
 func TestStopAll(t *testing.T) {
@@ -969,7 +983,7 @@ func TestBuild_WindowEnv_ShellEscaped(t *testing.T) {
 }
 
 func TestRestartSession(t *testing.T) {
-	mock := &MockClient{}
+	mock := &MockClient{HasSessionReturn: true}
 	builder := newTestBuilder(mock, nil)
 
 	cfg := &config.ProjectConfig{

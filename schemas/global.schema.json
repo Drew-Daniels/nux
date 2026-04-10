@@ -105,7 +105,14 @@
         },
         "layout": {
           "type": "string",
-          "description": "Tmux pane layout: even-horizontal"
+          "enum": [
+            "even-horizontal",
+            "even-vertical",
+            "main-horizontal",
+            "main-vertical",
+            "tiled"
+          ],
+          "description": "Tmux pane layout. Also accepts custom tmux layout strings."
         },
         "command": {
           "type": "string",

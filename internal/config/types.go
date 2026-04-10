@@ -47,7 +47,7 @@ type ProjectConfig struct {
 type Window struct {
 	Name    string            `yaml:"name" json:"name" jsonschema:"required,description=Window name shown in the tmux status bar."`
 	Root    string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
-	Layout  string            `yaml:"layout" json:"layout,omitempty" jsonschema:"description=Tmux pane layout: even-horizontal, even-vertical, main-horizontal, main-vertical, tiled, or a custom tmux layout string."`
+	Layout  string            `yaml:"layout" json:"layout,omitempty" jsonschema:"enum=even-horizontal,enum=even-vertical,enum=main-horizontal,enum=main-vertical,enum=tiled,description=Tmux pane layout. Also accepts custom tmux layout strings."`
 	Command string            `yaml:"command" json:"command,omitempty" jsonschema:"description=Command for a single-pane window. Mutually exclusive with panes."`
 	Env     map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
 	Panes   []Pane            `yaml:"panes" json:"panes,omitempty" jsonschema:"description=Pane definitions. Mutually exclusive with command."`

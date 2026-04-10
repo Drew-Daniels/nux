@@ -17,9 +17,11 @@ nux provides subcommands for managing sessions, projects, and your environment. 
 | [`nux list`]({{< relref "list" >}}) / `nux ls` | List configured projects and their status |
 | [`nux ps`]({{< relref "ps" >}}) | Show running tmux sessions |
 | [`nux show`]({{< relref "show" >}}) | Print resolved config for a project |
+| [`nux config`]({{< relref "config" >}}) | Open or create the global config file |
 | [`nux new`]({{< relref "new" >}}) | Create a new project config file |
 | [`nux edit`]({{< relref "edit" >}}) | Open a project config in `$EDITOR` |
 | [`nux delete`]({{< relref "delete" >}}) | Delete a project config file |
+| [`nux reset`]({{< relref "reset" >}}) | Remove the global config and start fresh |
 | [`nux validate`]({{< relref "validate" >}}) | Validate project configs for structural errors |
 | [`nux doctor`]({{< relref "doctor" >}}) | Run environment diagnostics |
 | [`nux completions`]({{< relref "completions" >}}) | Generate shell completions |

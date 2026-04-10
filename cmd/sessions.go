@@ -11,6 +11,10 @@ import (
 )
 
 func runSessions(d *deps, args []string) error {
+	if d.run != "" && len(d.vars) > 0 {
+		_, _ = fmt.Fprintln(d.stderr, "warning: --var is ignored when using --run/-x")
+	}
+
 	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err

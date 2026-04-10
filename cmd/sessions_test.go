@@ -369,6 +369,10 @@ func TestOpenInEditor_NoEditor(t *testing.T) {
 	if err != nil {
 		t.Error("expected nil when no editor set")
 	}
+	stderr := stderrStr(d)
+	if !strings.Contains(stderr, "$EDITOR") {
+		t.Errorf("expected hint about $EDITOR in stderr, got %q", stderr)
+	}
 }
 
 func TestOpenInEditor_EditorFailure(t *testing.T) {
@@ -500,6 +504,29 @@ func TestRunBareNux_AutoDetect_Attaches(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	if !mock.Called("AttachSession") {
 		t.Error("expected AttachSession when noAttach=false")
+	}
+}
+
+func TestRunSessions_VarWithRunWarning(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.run = "go test ./..."
+	d.vars = map[string]string{"port": "8080"}
+	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "go test ./..."})
+
+	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	err := runSessions(d, []string{"blog"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	stderr := stderrStr(d)
+	if !strings.Contains(stderr, "--var is ignored") {
+		t.Errorf("expected warning in stderr, got %q", stderr)
 	}
 }
 

@@ -12,7 +12,7 @@ import (
 var psCmd = &cobra.Command{
 	Use:   "ps",
 	Short: "Show running tmux sessions",
-	Long:  `Show currently running tmux sessions managed by nux.`,
+	Long:  `Show all currently running tmux sessions.`,
 	RunE:  runPs,
 }
 

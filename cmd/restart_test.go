@@ -38,6 +38,8 @@ func TestRunRestartWith_VarOverrides(t *testing.T) {
 func TestRunRestartWith_FullSession(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
 		Root: d.global.ProjectsDir,
 		Windows: []config.Window{
@@ -49,7 +51,6 @@ func TestRunRestartWith_FullSession(t *testing.T) {
 		t.Fatalf("runRestartWith: %v", err)
 	}
 
-	mock := d.client.(*tmux.MockClient)
 	if !mock.Called("KillSession") {
 		t.Error("expected KillSession")
 	}
@@ -97,6 +98,8 @@ func TestRunRestartWith_NotFound(t *testing.T) {
 
 func TestRunRestartWith_FullSession_Attaches(t *testing.T) {
 	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
 		Root: d.global.ProjectsDir,
 		Windows: []config.Window{
@@ -108,7 +111,6 @@ func TestRunRestartWith_FullSession_Attaches(t *testing.T) {
 		t.Fatalf("runRestartWith: %v", err)
 	}
 
-	mock := d.client.(*tmux.MockClient)
 	if !mock.Called("AttachSession") {
 		t.Error("expected AttachSession when noAttach=false")
 	}

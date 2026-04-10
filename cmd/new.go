@@ -51,6 +51,7 @@ func runNewWith(d *deps, args []string) error {
 
 func openInEditor(d *deps, path string) error {
 	if d.editor == "" {
+		_, _ = fmt.Fprintln(d.stderr, "hint: set $EDITOR to open new configs automatically")
 		return nil
 	}
 	cmd := d.execCmd(d.editor, path)

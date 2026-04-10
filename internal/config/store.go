@@ -8,6 +8,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const ProjectSchemaModeline = "# yaml-language-server: $schema=https://raw.githubusercontent.com/Drew-Daniels/nux/main/schemas/project.schema.json\n"
+
 // ProjectStore abstracts operations on project config files, providing
 // an injection seam for testing without filesystem access.
 type ProjectStore interface {
@@ -85,7 +87,8 @@ func (s *DirProjectStore) Save(name string, cfg *ProjectConfig) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.Path(name), data, 0o644)
+	content := append([]byte(ProjectSchemaModeline), data...)
+	return os.WriteFile(s.Path(name), content, 0o644)
 }
 
 func (s *DirProjectStore) Delete(name string) error {

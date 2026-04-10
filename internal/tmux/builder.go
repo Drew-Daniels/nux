@@ -383,6 +383,9 @@ func (b *Builder) startPanedWindow(session string, w config.Window, projectRoot 
 }
 
 func (b *Builder) StopSession(name string) error {
+	if !b.client.HasSession(name) {
+		return nil
+	}
 	return b.client.KillSession(name)
 }
 

@@ -8,13 +8,19 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var showRaw bool
+
 var showCmd = &cobra.Command{
 	Use:   "show <project>",
 	Short: "Print the resolved config for a project",
 	Long: `Print the fully resolved config for a project after interpolation,
-variable expansion, and root resolution. Useful for debugging configs.`,
+variable expansion, and root resolution. Useful for debugging configs.
+
+Use --raw to print the config before interpolation (no variable or
+environment expansion). This avoids exposing secrets in terminal output.`,
 	Example: `  nux show blog
-  nux show blog --var port=8080`,
+  nux show blog --var port=8080
+  nux show blog --raw`,
 	Args: cobra.ExactArgs(1),
 	ValidArgsFunction: func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		d, err := setup()
@@ -36,6 +42,7 @@ variable expansion, and root resolution. Useful for debugging configs.`,
 
 func init() {
 	showCmd.Flags().StringArrayVar(&opts.vars, "var", nil, "override a custom variable (key=value, repeatable)")
+	showCmd.Flags().BoolVar(&showRaw, "raw", false, "print the config before interpolation (no variable or env expansion)")
 	rootCmd.AddCommand(showCmd)
 }
 
@@ -56,6 +63,11 @@ func runShow(_ *cobra.Command, args []string) error {
 
 func runShowWith(d *deps, args []string) error {
 	name := args[0]
+
+	if showRaw {
+		return runShowRaw(d, name)
+	}
+
 	result, err := d.resolver.Resolve(name)
 	if err != nil {
 		return err
@@ -70,6 +82,27 @@ func runShowWith(d *deps, args []string) error {
 		Root:   result.Root,
 		Source: result.ConfigSource,
 		Config: result.Config,
+	}
+
+	data, err := yaml.Marshal(out)
+	if err != nil {
+		return fmt.Errorf("marshalling output: %w", err)
+	}
+	_, _ = fmt.Fprint(d.stdout, string(data))
+	return nil
+}
+
+func runShowRaw(d *deps, name string) error {
+	cfg, cfgPath, err := d.store.Load(name)
+	if err != nil {
+		return fmt.Errorf("config not found: %s", d.store.Path(name))
+	}
+
+	out := showOutput{
+		Name:   config.NormalizeSessionName(name),
+		Root:   cfg.Root,
+		Source: cfgPath,
+		Config: cfg,
 	}
 
 	data, err := yaml.Marshal(out)

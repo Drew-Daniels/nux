@@ -11,13 +11,14 @@ import (
 
 func TestRunStopWith(t *testing.T) {
 	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
 
 	if err := runStopWith(d, []string{"blog"}); err != nil {
 		t.Fatalf("runStopWith: %v", err)
 	}
 
-	mock := d.client.(*tmux.MockClient)
 	found := false
 	for _, c := range mock.Calls {
 		if c.Method == "KillSession" && len(c.Args) > 0 && c.Args[0] == "blog" {
@@ -31,12 +32,13 @@ func TestRunStopWith(t *testing.T) {
 
 func TestRunStopWith_NormalizesSessionName(t *testing.T) {
 	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
 
 	if err := runStopWith(d, []string{"my.project"}); err != nil {
 		t.Fatalf("runStopWith: %v", err)
 	}
 
-	mock := d.client.(*tmux.MockClient)
 	found := false
 	for _, c := range mock.Calls {
 		if c.Method == "KillSession" && len(c.Args) > 0 && c.Args[0] == "my_project" {
@@ -45,6 +47,18 @@ func TestRunStopWith_NormalizesSessionName(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected KillSession with normalized name 'my_project'")
+	}
+}
+
+func TestRunStopWith_NotRunning(t *testing.T) {
+	d := testDeps(t)
+
+	err := runStopWith(d, []string{"studios"})
+	if err == nil {
+		t.Fatal("expected error for session not running")
+	}
+	if !strings.Contains(err.Error(), "is not running") {
+		t.Errorf("error = %q, expected 'is not running'", err.Error())
 	}
 }
 
@@ -59,6 +73,7 @@ func TestRunStopWith_ExpandError(t *testing.T) {
 func TestRunStopWith_KillError(t *testing.T) {
 	d := testDeps(t)
 	mock := d.client.(*tmux.MockClient)
+	mock.HasSessionReturn = true
 	mock.DefaultError = fmt.Errorf("kill failed")
 	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
 
