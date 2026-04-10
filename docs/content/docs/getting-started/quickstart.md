@@ -1,6 +1,7 @@
 ---
 title: Quickstart
 weight: 2
+description: "Set up nux in minutes - configure global defaults, create project configs, start sessions, and use groups and patterns."
 ---
 
 This walkthrough assumes nux is installed and tmux 3.0+ is available. See [Installation]({{< relref "/docs/getting-started/installation" >}}) if you have not set that up yet.

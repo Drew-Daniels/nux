@@ -1,6 +1,7 @@
 ---
 title: Installation
 weight: 1
+description: "Install nux via Homebrew, go install, Nix, or from source. Includes shell completions for bash, zsh, and fish."
 ---
 
 Install nux using one of the methods below. You need **tmux 3.0 or newer** on your PATH before using nux.

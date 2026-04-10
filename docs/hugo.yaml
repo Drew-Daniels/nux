@@ -1,6 +1,7 @@
 baseURL: https://drew-daniels.github.io/nux/
 title: nux
 languageCode: en-us
+description: "nux is a modern tmux session manager with batch start, session groups, pattern matching, and zero-config project discovery."
 
 enableGitInfo: true
 

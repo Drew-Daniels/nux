@@ -1,6 +1,7 @@
 ---
 title: nux
 type: docs
+description: "A modern tmux session manager with batch start, session groups, pattern matching, and zero-config project discovery."
 ---
 
 <div class="nux-hero">

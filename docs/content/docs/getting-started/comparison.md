@@ -1,6 +1,7 @@
 ---
 title: Comparison with alternatives
 weight: 4
+description: "How nux compares to tmuxinator, tmuxp, smug, sesh, tms, tmux-sessionx, and other tmux session managers."
 ---
 
 Several tools manage tmux sessions. This page compares nux with the most popular alternatives so you can decide which fits your workflow.
