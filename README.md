@@ -195,6 +195,12 @@ root: ~/projects/my-project
 windows: ...
 ```
 
+## Community
+
+- [Contributing](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md)
+- [Questions](https://github.com/Drew-Daniels/nux/discussions) · [Issues](https://github.com/Drew-Daniels/nux/issues)
+
 ## License
 
 [MIT](LICENSE)

@@ -1,5 +1,9 @@
 # Contributing to nux
 
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security policy](SECURITY.md) (report vulnerabilities privately)
+- [Support / where to ask](SUPPORT.md)
+
 ## Prerequisites
 
 - Go 1.26+

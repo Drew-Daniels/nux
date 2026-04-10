@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/Drew-Daniels/nux/discussions
+    about: Ask for help, share workflows, or discuss ideas (not for bug reports)
+
+  - name: Security vulnerability
+    url: https://github.com/Drew-Daniels/nux/security/advisories/new
+    about: Report privately. Do not open a public issue for security issues.

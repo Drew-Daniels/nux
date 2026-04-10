@@ -29,12 +29,27 @@ checksum:
 
 changelog:
   sort: asc
+  use: github
   filters:
     exclude:
       - "^docs:"
       - "^test:"
       - "^ci:"
       - "^chore:"
+  groups:
+    - title: Features
+      regexp: "^feat(\\(.+\\))?!?:"
+      order: 0
+    - title: Bug fixes
+      regexp: "^fix(\\(.+\\))?!?:"
+      order: 1
+    - title: Other
+      regexp: "^.*"
+      order: 999
+
+release:
+  header: |
+    **Full diff**: https://github.com/Drew-Daniels/nux/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 brews:
   - repository:

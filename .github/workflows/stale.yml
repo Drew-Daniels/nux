@@ -1,0 +1,29 @@
+# Marks inactive issues/PRs so the backlog stays manageable.
+# https://github.com/actions/stale
+
+name: Stale
+
+on:
+  schedule:
+    - cron: "32 15 * * 2"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: 90
+          days-before-close: 14
+          stale-issue-message: "This issue has been marked stale due to inactivity. Comment or remove the stale label to keep it open."
+          stale-pr-message: "This PR has been marked stale due to inactivity."
+          close-issue-message: "Closing due to inactivity. Reopen if still relevant."
+          exempt-issue-labels: "security,enhancement"
+          exempt-pr-labels: "security"
+          operations-per-run: 30
