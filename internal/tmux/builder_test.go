@@ -125,7 +125,7 @@ func TestBuildWindows_UnknownWindow(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
 	cfg := &config.ProjectConfig{
-		Windows: []config.Window{{Name: "a", Command: "x"}},
+		Windows: []config.Window{{Name: "a", Panes: []config.Pane{{Command: "x"}}}},
 	}
 	err := builder.BuildWindows("p", cfg, "/r", []string{"missing"})
 	if err == nil {
@@ -190,7 +190,7 @@ func TestBuild_NilConfig_DefaultWindows(t *testing.T) {
 						{},
 					},
 				},
-				{Name: "shell"},
+				{Name: "shell", Panes: []config.Pane{{Command: ""}}},
 			},
 		},
 		PaneInit: []string{"cls"},
@@ -275,7 +275,7 @@ func TestBuild_RunCommand_OverridesDefaultSessionWindows(t *testing.T) {
 		DefaultSession: &config.DefaultSession{
 			Windows: []config.Window{
 				{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
-				{Name: "shell"},
+				{Name: "shell", Panes: []config.Pane{{Command: ""}}},
 			},
 		},
 	}
@@ -410,7 +410,7 @@ func TestRestartWindow_NotFound(t *testing.T) {
 
 	cfg := &config.ProjectConfig{
 		Windows: []config.Window{
-			{Name: "editor"},
+			{Name: "editor", Panes: []config.Pane{{Command: ""}}},
 		},
 	}
 
@@ -844,14 +844,14 @@ func TestBuild_WindowEnv_MultipleWindows(t *testing.T) {
 	cfg := &config.ProjectConfig{
 		Windows: []config.Window{
 			{
-				Name:    "api",
-				Env:     map[string]string{"PORT": "3000"},
-				Command: "go run .",
+				Name:  "api",
+				Env:   map[string]string{"PORT": "3000"},
+				Panes: []config.Pane{{Command: "go run ."}},
 			},
 			{
-				Name:    "frontend",
-				Env:     map[string]string{"PORT": "5173"},
-				Command: "npm run dev",
+				Name:  "frontend",
+				Env:   map[string]string{"PORT": "5173"},
+				Panes: []config.Pane{{Command: "npm run dev"}},
 			},
 		},
 	}
@@ -884,16 +884,16 @@ func TestBuild_WindowEnv_MultipleWindows(t *testing.T) {
 	}
 }
 
-func TestBuild_WindowEnv_CommandShorthand(t *testing.T) {
+func TestBuild_WindowEnv_SinglePane(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
 
 	cfg := &config.ProjectConfig{
 		Windows: []config.Window{
 			{
-				Name:    "server",
-				Env:     map[string]string{"PORT": "8080"},
-				Command: "npm start",
+				Name:  "server",
+				Env:   map[string]string{"PORT": "8080"},
+				Panes: []config.Pane{{Command: "npm start"}},
 			},
 		},
 	}
@@ -922,7 +922,7 @@ func TestBuild_WindowEnv_CommandShorthand(t *testing.T) {
 		t.Fatal("expected npm start")
 	}
 	if exportIdx >= cmdIdx {
-		t.Error("export should come before the window command")
+		t.Error("export should come before the pane command")
 	}
 }
 
@@ -934,9 +934,9 @@ func TestBuild_WindowEnv_WithProjectEnv(t *testing.T) {
 		Env: map[string]string{"NODE_ENV": "development"},
 		Windows: []config.Window{
 			{
-				Name:    "api",
-				Env:     map[string]string{"PORT": "3000"},
-				Command: "npm start",
+				Name:  "api",
+				Env:   map[string]string{"PORT": "3000"},
+				Panes: []config.Pane{{Command: "npm start"}},
 			},
 		},
 	}
@@ -961,13 +961,13 @@ func TestBuild_WindowEnv_ShellEscaped(t *testing.T) {
 	cfg := &config.ProjectConfig{
 		Windows: []config.Window{
 			{
-				Name:    "app",
-				Command: "node server.js",
+				Name: "app",
 				Env: map[string]string{
 					"MSG":    "hello world",
 					"QUOTES": "it's fine",
 					"DOLLAR": "price is $5",
 				},
+				Panes: []config.Pane{{Command: "node server.js"}},
 			},
 		},
 	}

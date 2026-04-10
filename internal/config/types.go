@@ -1,6 +1,11 @@
 package config
 
-import "gopkg.in/yaml.v3"
+import (
+	"fmt"
+
+	"github.com/invopop/jsonschema"
+	"gopkg.in/yaml.v3"
+)
 
 // GlobalConfig holds top-level settings from ~/.config/nux/config.yaml.
 type GlobalConfig struct {
@@ -18,6 +23,18 @@ type GlobalConfig struct {
 type DefaultSession struct {
 	Command string   `yaml:"command" json:"command,omitempty" jsonschema:"description=Command to run in the first pane (string shorthand form)."`
 	Windows []Window `yaml:"windows" json:"windows,omitempty" jsonschema:"description=Window definitions for the default session template."`
+}
+
+func (DefaultSession) JSONSchemaExtend(s *jsonschema.Schema) {
+	obj := *s
+	s.Properties = nil
+	s.AdditionalProperties = nil
+	s.Type = ""
+	s.OneOf = []*jsonschema.Schema{
+		{Type: "string", Description: "Command shorthand — creates a single-pane session running this command."},
+		&obj,
+	}
+	s.Description = "Template for projects without a config file. A plain string sets the command for a single-pane session."
 }
 
 // UnmarshalYAML allows DefaultSession to be a plain string or a full object.
@@ -45,12 +62,28 @@ type ProjectConfig struct {
 
 // Window defines a tmux window inside a project session.
 type Window struct {
-	Name    string            `yaml:"name" json:"name" jsonschema:"required,description=Window name shown in the tmux status bar."`
-	Root    string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
-	Layout  string            `yaml:"layout" json:"layout,omitempty" jsonschema:"enum=even-horizontal,enum=even-vertical,enum=main-horizontal,enum=main-vertical,enum=tiled,description=Tmux pane layout. Also accepts custom tmux layout strings."`
-	Command string            `yaml:"command" json:"command,omitempty" jsonschema:"description=Command for a single-pane window. Mutually exclusive with panes."`
-	Env     map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
-	Panes   []Pane            `yaml:"panes" json:"panes,omitempty" jsonschema:"description=Pane definitions. Mutually exclusive with command."`
+	Name   string            `yaml:"name" json:"name" jsonschema:"required,description=Window name shown in the tmux status bar."`
+	Root   string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
+	Layout string            `yaml:"layout" json:"layout,omitempty" jsonschema:"enum=even-horizontal,enum=even-vertical,enum=main-horizontal,enum=main-vertical,enum=tiled,description=Tmux pane layout. Also accepts custom tmux layout strings."`
+	Env    map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
+	Panes  []Pane            `yaml:"panes" json:"panes,omitempty" jsonschema:"description=Pane definitions. Every window must have at least one pane."`
+}
+
+// UnmarshalYAML rejects the removed window-level command field with an
+// actionable error message directing users to panes.
+func (w *Window) UnmarshalYAML(value *yaml.Node) error {
+	type raw Window
+	if err := value.Decode((*raw)(w)); err != nil {
+		return err
+	}
+	if value.Kind == yaml.MappingNode {
+		for i := 0; i < len(value.Content)-1; i += 2 {
+			if value.Content[i].Value == "command" {
+				return fmt.Errorf("window %q: \"command\" is not a valid window field; use panes instead (e.g. panes: [%s])", w.Name, value.Content[i+1].Value)
+			}
+		}
+	}
+	return nil
 }
 
 // Pane defines a tmux pane inside a window.
@@ -58,6 +91,34 @@ type Pane struct {
 	Root    string `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override for this pane."`
 	Command string `yaml:"command" json:"command,omitempty" jsonschema:"description=Command to run in this pane."`
 	Split   string `yaml:"split" json:"split,omitempty" jsonschema:"enum=horizontal,enum=vertical,description=Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."`
+}
+
+func (Pane) JSONSchema() *jsonschema.Schema {
+	objProps := jsonschema.NewProperties()
+	objProps.Set("root", &jsonschema.Schema{
+		Type:        "string",
+		Description: "Working directory override for this pane.",
+	})
+	objProps.Set("command", &jsonschema.Schema{
+		Type:        "string",
+		Description: "Command to run in this pane.",
+	})
+	objProps.Set("split", &jsonschema.Schema{
+		Type:        "string",
+		Enum:        []any{"horizontal", "vertical"},
+		Description: "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical.",
+	})
+	return &jsonschema.Schema{
+		OneOf: []*jsonschema.Schema{
+			{Type: "string", Description: "Command shorthand — equivalent to {command: <value>}."},
+			{
+				Type:                 "object",
+				Properties:           objProps,
+				AdditionalProperties: jsonschema.FalseSchema,
+			},
+		},
+		Description: "Pane definition. A plain string is shorthand for {command: <string>}.",
+	}
 }
 
 // UnmarshalYAML allows a Pane to be a plain command string or a full object.

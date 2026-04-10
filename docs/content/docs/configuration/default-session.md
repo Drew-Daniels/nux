@@ -21,17 +21,44 @@ This creates a session with one window. The `pane_init` commands (if configured)
 
 ## Object form
 
-Use an object with a `windows` array for the same structure as a full [project config]({{< relref "project-config" >}}):
+Use an object with a `windows` array. Each window uses the **same fields** as in a [project config]({{< relref "project-config" >}}) (`name`, `panes`, `layout`, `env`, and so on). Every window must have at least one pane.
+
+`default_session` itself only accepts **`command`** (single-pane fallback for the whole template) and **`windows`**. It does **not** support project-level options such as `root`, `vars`, top-level `env`, or lifecycle hooks (`on_start`, `on_ready`, …). For those, add a real project file under `projects/`.
 
 ```yaml
 default_session:
   windows:
     - name: editor
-      command: nvim
+      panes:
+        - nvim
     - name: term
+      panes:
+        - ""
 ```
 
 This creates a two-window session for any project that lacks its own config file.
+
+## Panes and `split`
+
+Multi-pane windows are defined with a window-level `panes` list. The field reference and examples are in [Project config]({{< relref "project-config" >}}) under **Panes**. Two details usually cause confusion:
+
+### `split` only applies from the second pane onward
+
+The **first** pane in the list is the window’s initial pane. nux does not run `split-window` for it, so a `split` field on **only** the first entry has no effect. For each **additional** pane, nux splits from the current layout and `split` chooses the direction:
+
+| Value | tmux flag | Result |
+|-------|-----------|--------|
+| `vertical` (default) | `split-window -v` | New pane **below** the active one (stacked) |
+| `horizontal` | `split-window -h` | New pane **beside** the active one (side by side) |
+
+### `layout` vs per-pane `split`
+
+- **`split`** on a pane: how **that** pane is created when it is added (one split at a time).
+- **`layout`** on the window: optional **tmux layout** applied **after** all panes exist (for example `tiled`, `even-vertical`, or a custom layout string). You can use both; think of splits as building blocks and `layout` as a final arrangement pass.
+
+### Same rules everywhere
+
+`default_session` windows use the same pane logic as project configs. If anything is unclear, read the **Panes** table and example under [Project config]({{< relref "project-config" >}}).
 
 ## Interaction with `pane_init`
 

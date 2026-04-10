@@ -74,7 +74,8 @@ zoxide: false
 # default_session:
 #   windows:
 #     - name: editor
-#       command: vim
+#       panes:
+#         - vim
 
 # Named groups for batch operations (e.g. nux @work).
 # groups:

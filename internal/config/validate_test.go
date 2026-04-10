@@ -11,7 +11,7 @@ func TestValidate_Valid(t *testing.T) {
 		Root: "~/projects/test",
 		Windows: []Window{
 			{Name: "editor", Layout: "tiled", Panes: []Pane{{Command: "vim"}}},
-			{Name: "shell", Layout: "even-horizontal"},
+			{Name: "shell", Layout: "even-horizontal", Panes: []Pane{{Command: ""}}},
 		},
 	}
 	if errs := Validate(cfg); len(errs) != 0 {
@@ -22,7 +22,7 @@ func TestValidate_Valid(t *testing.T) {
 func TestValidate_CommandAndWindowsMutuallyExclusive(t *testing.T) {
 	cfg := &ProjectConfig{
 		Command: "vim",
-		Windows: []Window{{Name: "editor"}},
+		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
 	}
 	errs := Validate(cfg)
 	if len(errs) == 0 {
@@ -31,22 +31,22 @@ func TestValidate_CommandAndWindowsMutuallyExclusive(t *testing.T) {
 	assertContains(t, errs[0].Error(), "mutually exclusive")
 }
 
-func TestValidate_WindowCommandAndPanesMutuallyExclusive(t *testing.T) {
+func TestValidate_WindowRequiresPanes(t *testing.T) {
 	cfg := &ProjectConfig{
 		Windows: []Window{
-			{Name: "editor", Command: "vim", Panes: []Pane{{Command: "test"}}},
+			{Name: "editor"},
 		},
 	}
 	errs := Validate(cfg)
 	if len(errs) == 0 {
-		t.Fatal("expected error for window command + panes")
+		t.Fatal("expected error for window without panes")
 	}
-	assertContains(t, errs[0].Error(), "mutually exclusive")
+	assertContains(t, errs[0].Error(), "at least one pane is required")
 }
 
 func TestValidate_WindowNameRequired(t *testing.T) {
 	cfg := &ProjectConfig{
-		Windows: []Window{{Layout: "tiled"}},
+		Windows: []Window{{Layout: "tiled", Panes: []Pane{{Command: ""}}}},
 	}
 	errs := Validate(cfg)
 	if len(errs) == 0 {
@@ -57,7 +57,7 @@ func TestValidate_WindowNameRequired(t *testing.T) {
 
 func TestValidate_InvalidLayout(t *testing.T) {
 	cfg := &ProjectConfig{
-		Windows: []Window{{Name: "editor", Layout: "bogus"}},
+		Windows: []Window{{Name: "editor", Layout: "bogus", Panes: []Pane{{Command: ""}}}},
 	}
 	errs := Validate(cfg)
 	if len(errs) == 0 {
@@ -70,7 +70,7 @@ func TestValidate_ValidLayouts(t *testing.T) {
 	layouts := []string{"even-horizontal", "even-vertical", "main-horizontal", "main-vertical", "tiled", ""}
 	for _, l := range layouts {
 		cfg := &ProjectConfig{
-			Windows: []Window{{Name: "w", Layout: l}},
+			Windows: []Window{{Name: "w", Layout: l, Panes: []Pane{{Command: ""}}}},
 		}
 		if errs := Validate(cfg); len(errs) != 0 {
 			t.Errorf("layout %q should be valid, got %v", l, errs)
@@ -80,7 +80,7 @@ func TestValidate_ValidLayouts(t *testing.T) {
 
 func TestValidate_CustomLayout(t *testing.T) {
 	cfg := &ProjectConfig{
-		Windows: []Window{{Name: "w", Layout: "b]cd,159x43,0,0{79x43,0,0,0,79x43,80,0,1}"}},
+		Windows: []Window{{Name: "w", Layout: "b]cd,159x43,0,0{79x43,0,0,0,79x43,80,0,1}", Panes: []Pane{{Command: ""}}}},
 	}
 	// Custom tmux layout strings start with a hex dimension and contain commas
 	// Our heuristic checks for a comma at position 4
@@ -97,8 +97,8 @@ func TestValidate_MultipleErrors(t *testing.T) {
 		},
 	}
 	errs := Validate(cfg)
-	if len(errs) < 3 {
-		t.Fatalf("expected at least 3 errors, got %d: %v", len(errs), errs)
+	if len(errs) < 4 {
+		t.Fatalf("expected at least 4 errors (mutually exclusive, name, panes, layout), got %d: %v", len(errs), errs)
 	}
 }
 
@@ -143,11 +143,11 @@ func TestValidateAllWith(t *testing.T) {
 	store := NewProjectStore(dir)
 
 	_ = store.Save("valid", &ProjectConfig{
-		Windows: []Window{{Name: "editor"}},
+		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
 	})
 	_ = store.Save("invalid", &ProjectConfig{
 		Command: "vim",
-		Windows: []Window{{Name: "editor"}},
+		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
 	})
 
 	results, err := ValidateAllWith(store)

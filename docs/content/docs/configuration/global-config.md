@@ -37,10 +37,10 @@ Commands run in **every** pane of **every** session before any pane-specific com
 
 ### `default_session`
 
-Template used when a project has no config file (see [Default session]({{< relref "default-session" >}})).
+Template used when a project has no config file (see [Default session]({{< relref "default-session" >}}), including **Panes and `split`**).
 
 - **String shorthand:** a single value treated as a one-window command (for example `nvim`).
-- **Object form:** an object with a `windows` array for full multi-window layouts.
+- **Object form:** an object with optional `command` and a `windows` array (same window shape as [project config]({{< relref "project-config" >}}), not a full project file).
 
 If omitted, projects without config files get a bare session with a single empty window.
 
@@ -71,7 +71,19 @@ picker_on_bare: false
 zoxide: false
 ```
 
-## Full example
+## Example configs
+
+### Minimal
+
+Enough to get started — everything else uses built-in defaults:
+
+```yaml
+projects_dir: ~/projects
+```
+
+### Editor-centric workflow
+
+Two windows for every unconfigured project: an editor and a shell. Direnv hooks ensure `.envrc` files are loaded automatically.
 
 ```yaml
 projects_dir: ~/code
@@ -84,8 +96,74 @@ pane_init:
 default_session:
   windows:
     - name: editor
-      command: nvim
+      panes:
+        - nvim
     - name: shell
+      panes:
+        - ""
+```
+
+### Split-pane development
+
+A tiled editor window with a side terminal, plus a dedicated shell window:
+
+```yaml
+projects_dir: ~/dev
+
+default_session:
+  windows:
+    - name: editor
+      layout: main-vertical
+      panes:
+        - nvim
+        - command: ""
+          split: horizontal
+    - name: shell
+      panes:
+        - ""
+```
+
+### Team with groups and zoxide
+
+Batch-start related projects and let zoxide find directories outside `projects_dir`:
+
+```yaml
+projects_dir: ~/work
+
+default_session: nvim
+
+picker: fzf
+picker_on_bare: true
+zoxide: true
+
+groups:
+  platform:
+    - api
+    - web
+    - admin
+  infra:
+    - terraform
+    - k8s-configs
+```
+
+### Full kitchen-sink
+
+```yaml
+projects_dir: ~/code
+
+default_shell: /bin/zsh
+
+pane_init:
+  - eval "$(direnv hook zsh)"
+
+default_session:
+  windows:
+    - name: editor
+      panes:
+        - nvim
+    - name: shell
+      panes:
+        - ""
 
 picker: fzf
 picker_on_bare: true

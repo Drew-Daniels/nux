@@ -127,6 +127,8 @@ default_session:
         - nvim
         - ""
     - name: shell
+      panes:
+        - ""
 
 groups:
   work:
@@ -159,6 +161,8 @@ windows:
       - nvim
       - ""
   - name: stack
+    panes:
+      - ""
 ```
 
 ### Config Management

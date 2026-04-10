@@ -75,8 +75,7 @@ func TestInterpolate_WindowsAndPanes(t *testing.T) {
 		Vars: map[string]string{"dir": "src", "editor": "nvim"},
 		Windows: []Window{
 			{
-				Root:    "{{dir}}",
-				Command: "{{editor}}",
+				Root: "{{dir}}",
 				Panes: []Pane{
 					{Root: "{{dir}}/sub", Command: "{{editor}} ."},
 				},
@@ -89,9 +88,6 @@ func TestInterpolate_WindowsAndPanes(t *testing.T) {
 	w := cfg.Windows[0]
 	if w.Root != "src" {
 		t.Errorf("window root = %q, want src", w.Root)
-	}
-	if w.Command != "nvim" {
-		t.Errorf("window command = %q, want nvim", w.Command)
 	}
 	p := w.Panes[0]
 	if p.Root != "src/sub" {
@@ -126,7 +122,7 @@ func TestInterpolate_WindowEnv(t *testing.T) {
 					"PORT":         "{{port}}",
 					"DATABASE_URL": "postgres://${NUX_TEST_HOST}/mydb",
 				},
-				Command: "npm start",
+				Panes: []Pane{{Command: "npm start"}},
 			},
 		},
 	}

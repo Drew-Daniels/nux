@@ -329,22 +329,6 @@ func shellEscape(s string) string {
 }
 
 func (b *Builder) startWindow(session string, w config.Window, projectRoot string) error {
-	if w.Command != "" {
-		return b.startCommandWindow(session, w)
-	}
-	return b.startPanedWindow(session, w, projectRoot)
-}
-
-func (b *Builder) startCommandWindow(session string, w config.Window) error {
-	target := session + ":" + w.Name
-	var errs []error
-	errs = append(errs, b.sendPaneInit(target)...)
-	errs = append(errs, b.sendWindowEnv(target, w.Env)...)
-	errs = append(errs, b.client.SendKeys(target, w.Command))
-	return errors.Join(errs...)
-}
-
-func (b *Builder) startPanedWindow(session string, w config.Window, projectRoot string) error {
 	target := session + ":" + w.Name
 	wr := windowRoot(w.Root, projectRoot)
 	pb := b.paneBase()

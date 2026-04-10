@@ -41,11 +41,11 @@ If a window name does not exist in the config, nux reports `"window not found in
 ## When to use selective windows
 
 - Large projects where you only need a few panes right now.
-- **Restart** when a single window's process is stuck or you changed window commands.
+- **Restart** when a single window's process is stuck or you changed its pane commands.
 - Iterating on one pane while leaving others untouched.
 
 ## Notes
 
 - `nux stop` and `nux delete` operate on the **project** name only; `blog:editor` stops or deletes the `blog` project/session config, not a single window.
 - To kill a single window manually without restart, use `tmux kill-window -t session:window`.
-- `nux restart` accepts exactly one argument (which may include comma-separated windows); it does not support patterns or groups.
+- `nux restart` supports multiple targets, glob patterns (`+`), and `@group` expansion.

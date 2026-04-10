@@ -23,7 +23,7 @@ func TestValidateAll_NoConfigs(t *testing.T) {
 func TestValidateAll_AllValid(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	if err := validateAll(d); err != nil {
@@ -40,7 +40,7 @@ func TestValidateAll_WithErrors(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
 		Command: "vim",
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := validateAll(d)
@@ -57,7 +57,7 @@ func TestValidateAll_WithErrors(t *testing.T) {
 func TestValidateProject_Valid(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	if err := validateProject(d, "blog"); err != nil {
@@ -74,7 +74,7 @@ func TestValidateProject_Invalid(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
 		Command: "vim",
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := validateProject(d, "bad")
@@ -95,7 +95,7 @@ func TestValidateProject_NotFound(t *testing.T) {
 func TestRunValidateWith_Delegating(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	if err := runValidateWith(d, []string{"blog"}); err != nil {
@@ -111,10 +111,10 @@ func TestRunValidateWith_Delegating(t *testing.T) {
 func TestRunValidateWith_Glob(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("web-api", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	_ = d.store.Save("web-ui", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	if err := runValidateWith(d, []string{"web+"}); err != nil {
@@ -130,10 +130,10 @@ func TestRunValidateWith_Glob(t *testing.T) {
 func TestRunValidateWith_MultipleNames(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	_ = d.store.Save("api", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "server"}},
+		Windows: []config.Window{{Name: "server", Panes: []config.Pane{{Command: "go run ."}}}},
 	})
 
 	if err := runValidateWith(d, []string{"blog", "api"}); err != nil {
@@ -149,10 +149,10 @@ func TestRunValidateWith_MultipleNames(t *testing.T) {
 func TestRunValidateWith_Group(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("alpha", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	_ = d.store.Save("bravo", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
 

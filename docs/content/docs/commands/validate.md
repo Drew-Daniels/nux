@@ -20,7 +20,7 @@ Validates project configuration files and reports errors. Each config is printed
 
 - `command` and `windows` are mutually exclusive at the project level.
 - Every window must have a `name`.
-- `command` and `panes` are mutually exclusive at the window level.
+- Every window must have at least one pane.
 - `layout` values must be a recognized tmux layout name or a valid custom layout string.
 - `split` values on panes must be `horizontal` or `vertical` (if set).
 

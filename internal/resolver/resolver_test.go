@@ -197,7 +197,7 @@ func testResolver(t *testing.T, cfgs map[string]*config.ProjectConfig) *Resolver
 
 func TestResolve_FromConfig(t *testing.T) {
 	r := testResolver(t, map[string]*config.ProjectConfig{
-		"blog": {Root: "/home/test/blog", Windows: []config.Window{{Name: "editor"}}},
+		"blog": {Root: "/home/test/blog", Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}}},
 	})
 
 	result, err := r.Resolve("blog")
@@ -220,7 +220,7 @@ func TestResolve_FromConfig(t *testing.T) {
 
 func TestResolve_FromConfig_ValidationError(t *testing.T) {
 	r := testResolver(t, map[string]*config.ProjectConfig{
-		"bad": {Command: "vim", Windows: []config.Window{{Name: "editor"}}},
+		"bad": {Command: "vim", Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}}},
 	})
 
 	_, err := r.Resolve("bad")
@@ -485,7 +485,7 @@ func TestExpandGlob_ListError(t *testing.T) {
 
 func TestResolve_SessionNameNormalized(t *testing.T) {
 	r := testResolver(t, map[string]*config.ProjectConfig{
-		"my.project": {Root: "/tmp", Windows: []config.Window{{Name: "editor"}}},
+		"my.project": {Root: "/tmp", Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}}},
 	})
 
 	result, err := r.Resolve("my.project")

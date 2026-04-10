@@ -37,7 +37,7 @@ func runNewWith(d *deps, args []string) error {
 
 	cfg := &config.ProjectConfig{
 		Windows: []config.Window{
-			{Name: "editor"},
+			{Name: "editor", Panes: []config.Pane{{Command: ""}}},
 		},
 	}
 

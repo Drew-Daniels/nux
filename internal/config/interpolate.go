@@ -91,7 +91,6 @@ func (ip *Interpolator) applyTransform(cfg *ProjectConfig, fn func(string) strin
 	for i := range cfg.Windows {
 		w := &cfg.Windows[i]
 		w.Root = fn(w.Root)
-		w.Command = fn(w.Command)
 		for k, v := range w.Env {
 			w.Env[k] = fn(v)
 		}

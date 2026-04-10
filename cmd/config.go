@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/Drew-Daniels/nux/internal/config"
@@ -27,7 +28,21 @@ func init() {
 func runConfig(_ *cobra.Command, _ []string) error {
 	d, err := setup()
 	if err != nil {
-		return err
+		cfgDir := config.DefaultConfigDir()
+		if opts.configDir != "" {
+			cfgDir = opts.configDir
+		}
+		cfgPath := filepath.Join(cfgDir, "config.yaml")
+		editor := opts.editor()
+		if editor == "" {
+			return fmt.Errorf("loading global config failed and $EDITOR is not set: %w", err)
+		}
+		_, _ = fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+		cmd := exec.Command(editor, cfgPath)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
 	}
 
 	cfgDir := config.DefaultConfigDir()

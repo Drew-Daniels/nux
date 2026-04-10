@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -24,7 +25,8 @@ func TestDefaultSession_UnmarshalYAML_Object(t *testing.T) {
 	input := `
 windows:
   - name: editor
-    command: vim
+    panes:
+      - vim
 `
 	var ds DefaultSession
 	if err := yaml.Unmarshal([]byte(input), &ds); err != nil {
@@ -38,6 +40,42 @@ windows:
 	}
 	if ds.Windows[0].Name != "editor" {
 		t.Errorf("window name = %q, want editor", ds.Windows[0].Name)
+	}
+}
+
+func TestWindow_UnmarshalYAML_RejectsCommand(t *testing.T) {
+	input := `
+name: editor
+command: vim
+`
+	var w Window
+	err := yaml.Unmarshal([]byte(input), &w)
+	if err == nil {
+		t.Fatal("expected error for window-level command")
+	}
+	if !strings.Contains(err.Error(), "not a valid window field") {
+		t.Errorf("expected actionable error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "panes: [vim]") {
+		t.Errorf("expected panes suggestion, got %q", err.Error())
+	}
+}
+
+func TestWindow_UnmarshalYAML_ValidPanes(t *testing.T) {
+	input := `
+name: editor
+panes:
+  - vim
+`
+	var w Window
+	if err := yaml.Unmarshal([]byte(input), &w); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if w.Name != "editor" {
+		t.Errorf("Name = %q, want editor", w.Name)
+	}
+	if len(w.Panes) != 1 || w.Panes[0].Command != "vim" {
+		t.Errorf("Panes = %+v, want [{Command: vim}]", w.Panes)
 	}
 }
 

@@ -22,7 +22,8 @@ env:
 
 windows:
   - name: api
-    command: ./bin/{{app_name}}-api
+    panes:
+      - ./bin/{{app_name}}-api
 ```
 
 ## Resolution order
@@ -83,7 +84,8 @@ env:
 
 windows:
   - name: dev
-    command: make dev SERVICE={{service}}
+    panes:
+      - make dev SERVICE={{service}}
 ```
 
 Adjust `service` and `region` per project file or override via `--var` without duplicating layout structure.

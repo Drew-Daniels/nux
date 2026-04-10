@@ -83,7 +83,7 @@ func TestRunDoctorChecks_InvalidConfig(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
 		Command: "vim",
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	_ = runDoctorChecks(d)
@@ -111,7 +111,7 @@ func TestRunDoctorChecks_DirsMissing(t *testing.T) {
 func TestRunDoctorWith_WithValidConfigs(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("good", &config.ProjectConfig{
-		Windows: []config.Window{{Name: "editor"}},
+		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := runDoctorWith(d)

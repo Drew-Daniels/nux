@@ -4,21 +4,30 @@
   "$ref": "#/$defs/GlobalConfig",
   "$defs": {
     "DefaultSession": {
-      "properties": {
-        "command": {
+      "oneOf": [
+        {
           "type": "string",
-          "description": "Command to run in the first pane (string shorthand form)."
+          "description": "Command shorthand — creates a single-pane session running this command."
         },
-        "windows": {
-          "items": {
-            "$ref": "#/$defs/Window"
+        {
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "Command to run in the first pane (string shorthand form)."
+            },
+            "windows": {
+              "items": {
+                "$ref": "#/$defs/Window"
+              },
+              "type": "array",
+              "description": "Window definitions for the default session template."
+            }
           },
-          "type": "array",
-          "description": "Window definitions for the default session template."
+          "additionalProperties": false,
+          "type": "object"
         }
-      },
-      "additionalProperties": false,
-      "type": "object"
+      ],
+      "description": "Template for projects without a config file. A plain string sets the command for a single-pane session."
     },
     "GlobalConfig": {
       "properties": {
@@ -72,26 +81,35 @@
       "type": "object"
     },
     "Pane": {
-      "properties": {
-        "root": {
+      "oneOf": [
+        {
           "type": "string",
-          "description": "Working directory override for this pane."
+          "description": "Command shorthand — equivalent to {command: \u003cvalue\u003e}."
         },
-        "command": {
-          "type": "string",
-          "description": "Command to run in this pane."
-        },
-        "split": {
-          "type": "string",
-          "enum": [
-            "horizontal",
-            "vertical"
-          ],
-          "description": "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."
+        {
+          "properties": {
+            "root": {
+              "type": "string",
+              "description": "Working directory override for this pane."
+            },
+            "command": {
+              "type": "string",
+              "description": "Command to run in this pane."
+            },
+            "split": {
+              "type": "string",
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "description": "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."
+            }
+          },
+          "additionalProperties": false,
+          "type": "object"
         }
-      },
-      "additionalProperties": false,
-      "type": "object"
+      ],
+      "description": "Pane definition. A plain string is shorthand for {command: \u003cstring\u003e}."
     },
     "Window": {
       "properties": {
@@ -114,10 +132,6 @@
           ],
           "description": "Tmux pane layout. Also accepts custom tmux layout strings."
         },
-        "command": {
-          "type": "string",
-          "description": "Command for a single-pane window. Mutually exclusive with panes."
-        },
         "env": {
           "additionalProperties": {
             "type": "string"
@@ -130,7 +144,7 @@
             "$ref": "#/$defs/Pane"
           },
           "type": "array",
-          "description": "Pane definitions. Mutually exclusive with command."
+          "description": "Pane definitions. Every window must have at least one pane."
         }
       },
       "additionalProperties": false,

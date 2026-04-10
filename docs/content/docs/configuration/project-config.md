@@ -41,11 +41,10 @@ Each window object supports:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | yes | Window name shown in the tmux status bar |
+| `panes` | yes | List of panes (at least one). Use `panes: [""]` for a bare shell. |
 | `root` | no | Working directory for this window. Relative paths resolve against the project `root`. Absolute paths and `~` paths are used as-is. |
 | `layout` | no | `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, `tiled`, or a custom tmux layout string |
-| `command` | no | Single-pane shorthand for this window. **Mutually exclusive** with `panes`. |
 | `env` | no | Environment variables for all panes in this window. Merged with project-level `env`; window values take precedence. See [Environment variables]({{< relref "environment-variables" >}}). |
-| `panes` | no | List of panes. **Mutually exclusive** with window-level `command`. |
 
 ### Panes
 
@@ -92,7 +91,8 @@ on_stop:
 
 windows:
   - name: api
-    command: npm run dev
+    panes:
+      - npm run dev
 
   - name: workers
     layout: even-vertical

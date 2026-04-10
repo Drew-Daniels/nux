@@ -47,8 +47,8 @@ func Validate(cfg *ProjectConfig) []error {
 			errs = append(errs, fmt.Errorf("%s: name is required", label))
 		}
 
-		if w.Command != "" && len(w.Panes) > 0 {
-			errs = append(errs, fmt.Errorf("%s: command and panes are mutually exclusive", label))
+		if len(w.Panes) == 0 {
+			errs = append(errs, fmt.Errorf("%s: at least one pane is required; use panes: [\"\"] for a bare shell", label))
 		}
 
 		if !IsValidLayout(w.Layout) {

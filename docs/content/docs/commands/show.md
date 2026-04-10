@@ -53,9 +53,11 @@ config:
         NODE_ENV: development
     windows:
         - name: editor
-          command: nvim
+          panes:
+            - nvim
         - name: dev
-          command: npm run dev
+          panes:
+            - npm run dev
 ```
 
 ```sh
