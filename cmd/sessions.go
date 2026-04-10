@@ -127,12 +127,19 @@ func validateAdhocSubset(d *deps, targets []sessionArg) error {
 
 func expandArgs(d *deps, args []string) ([]sessionArg, error) {
 	var sessionNames []string
+	ensureSessionNames := func() {
+		if len(sessionNames) > 0 {
+			return
+		}
+		sessions, _ := d.client.ListSessions()
+		for _, s := range sessions {
+			sessionNames = append(sessionNames, s.Name)
+		}
+	}
+
 	for _, arg := range args {
 		if strings.Contains(arg, "+") {
-			sessions, _ := d.client.ListSessions()
-			for _, s := range sessions {
-				sessionNames = append(sessionNames, s.Name)
-			}
+			ensureSessionNames()
 			break
 		}
 	}
@@ -147,10 +154,22 @@ func expandArgs(d *deps, args []string) ([]sessionArg, error) {
 				return nil, err
 			}
 			for _, m := range members {
-				targets = append(targets, sessionArg{Project: m})
+				if strings.Contains(m, "+") {
+					ensureSessionNames()
+					matches, err := d.resolver.ExpandGlob(m, sessionNames)
+					if err != nil {
+						return nil, err
+					}
+					for _, match := range matches {
+						targets = append(targets, sessionArg{Project: match})
+					}
+				} else {
+					targets = append(targets, sessionArg{Project: m})
+				}
 			}
 
 		case strings.Contains(arg, "+"):
+			ensureSessionNames()
 			matches, err := d.resolver.ExpandGlob(arg, sessionNames)
 			if err != nil {
 				return nil, err

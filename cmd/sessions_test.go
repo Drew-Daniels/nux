@@ -41,6 +41,28 @@ func TestExpandArgs_Group(t *testing.T) {
 	}
 }
 
+func TestExpandArgs_GroupWithGlobMember(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("web-api", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{Command: "b"})
+	_ = d.store.Save("other", &config.ProjectConfig{Command: "c"})
+	d.global.Groups = map[string][]string{
+		"batch": {"web+"},
+	}
+
+	names, err := expandArgs(d, []string{"@batch"})
+	if err != nil {
+		t.Fatalf("expandArgs: %v", err)
+	}
+	if len(names) != 2 {
+		t.Fatalf("got %d targets, want 2: %+v", len(names), names)
+	}
+	got := []string{names[0].Project, names[1].Project}
+	if got[0] != "web-api" || got[1] != "web-ui" {
+		t.Errorf("got projects %v, want [web-api web-ui] (sorted)", got)
+	}
+}
+
 func TestExpandArgs_GroupNotFound(t *testing.T) {
 	d := testDeps(t)
 	_, err := expandArgs(d, []string{"@missing"})
