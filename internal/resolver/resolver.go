@@ -161,7 +161,36 @@ func (r *Resolver) ExpandGlob(pattern string, sessionNames []string) ([]string, 
 	if err != nil {
 		return nil, err
 	}
+
+	seen := make(map[string]bool, len(projects))
+	for _, p := range projects {
+		seen[p.Name] = true
+	}
+	for _, name := range r.listProjectsDirNames() {
+		if !seen[name] {
+			projects = append(projects, config.ProjectInfo{Name: name})
+		}
+	}
+
 	return ExpandGlobFrom(pattern, projects, sessionNames)
+}
+
+func (r *Resolver) listProjectsDirNames() []string {
+	dir := r.expandTilde(r.global.ProjectsDir)
+	if dir == "" {
+		return nil
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var names []string
+	for _, e := range entries {
+		if e.IsDir() {
+			names = append(names, e.Name())
+		}
+	}
+	return names
 }
 
 func ExpandGlobFrom(pattern string, projects []config.ProjectInfo, sessionNames []string) ([]string, error) {

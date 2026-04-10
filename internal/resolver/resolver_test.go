@@ -346,6 +346,85 @@ func TestExpandGlob_Method(t *testing.T) {
 	}
 }
 
+func TestExpandGlob_MatchesProjectsDirDirectories(t *testing.T) {
+	projectsDir := t.TempDir()
+	for _, name := range []string{"interoperability-development-wiki", "interop-tools", "blog"} {
+		if err := os.Mkdir(filepath.Join(projectsDir, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	store := config.NewProjectStore(t.TempDir())
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: projectsDir}, store)
+
+	got, err := r.ExpandGlob("interop+", nil)
+	if err != nil {
+		t.Fatalf("ExpandGlob: %v", err)
+	}
+	want := []string{"interop-tools", "interoperability-development-wiki"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Errorf("got[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestExpandGlob_DeduplicatesConfigAndDir(t *testing.T) {
+	projectsDir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(projectsDir, "web-api"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	store := config.NewProjectStore(t.TempDir())
+	_ = store.Save("web-api", &config.ProjectConfig{Command: "a"})
+
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: projectsDir}, store)
+
+	got, err := r.ExpandGlob("web+", nil)
+	if err != nil {
+		t.Fatalf("ExpandGlob: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("expected 1 match (deduplicated), got %d: %v", len(got), got)
+	}
+	if got[0] != "web-api" {
+		t.Errorf("got %q, want web-api", got[0])
+	}
+}
+
+func TestExpandGlob_EmptyProjectsDir(t *testing.T) {
+	store := config.NewProjectStore(t.TempDir())
+	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
+
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: ""}, store)
+
+	got, err := r.ExpandGlob("alpha+", nil)
+	if err != nil {
+		t.Fatalf("ExpandGlob: %v", err)
+	}
+	if len(got) != 1 || got[0] != "alpha" {
+		t.Errorf("got %v, want [alpha]", got)
+	}
+}
+
+func TestExpandGlob_MissingProjectsDir(t *testing.T) {
+	store := config.NewProjectStore(t.TempDir())
+	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
+
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: "/nonexistent/dir"}, store)
+
+	got, err := r.ExpandGlob("alpha+", nil)
+	if err != nil {
+		t.Fatalf("ExpandGlob: %v", err)
+	}
+	if len(got) != 1 || got[0] != "alpha" {
+		t.Errorf("got %v, want [alpha]", got)
+	}
+}
+
 func TestExpandTilde_NoTilde(t *testing.T) {
 	r := NewResolverWithStore(&config.GlobalConfig{}, config.NewProjectStore(t.TempDir()))
 	got := r.expandTilde("/absolute/path")
