@@ -198,7 +198,7 @@ func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 	cwd, _ := d.getwd()
 	for _, dir := range resolver.ResolveRoots(d.global.ProjectDirs) {
 		rel, err := filepath.Rel(dir, cwd)
-		if err != nil || strings.HasPrefix(rel, "..") {
+		if err != nil || strings.HasPrefix(rel, "..") || rel == "." {
 			continue
 		}
 		name := strings.SplitN(rel, string(filepath.Separator), 2)[0]

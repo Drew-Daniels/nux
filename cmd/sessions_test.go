@@ -302,6 +302,16 @@ func TestCollectPickerItems_MultipleProjectDirs(t *testing.T) {
 	}
 }
 
+func TestTryAutoDetect_AtProjectDirRoot(t *testing.T) {
+	d := testDeps(t)
+	d.getwd = func() (string, error) { return d.global.ProjectDirs[0], nil }
+
+	_, ok := tryAutoDetect(d)
+	if ok {
+		t.Error("expected auto-detect to skip when cwd is the project_dirs root itself")
+	}
+}
+
 func TestTryAutoDetect_OutsideProjectDir(t *testing.T) {
 	d := testDeps(t)
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
