@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/Drew-Daniels/nux/internal/config"
@@ -264,6 +266,7 @@ func runBareNux(d *deps) error {
 		if chosen == "" {
 			return nil
 		}
+		chosen = strings.TrimSuffix(chosen, " *")
 		return runSessions(d, []string{chosen})
 	}
 
@@ -274,14 +277,29 @@ func collectPickerItems(d *deps) []string {
 	// Dedupe by normalized session name so e.g. config "my.project" and tmux
 	// session "my_project" count as one entry (project name preferred).
 	seen := make(map[string]bool)
-	var items []string
+	hasConfig := make(map[string]bool)
+	var names []string
 
 	projects, _ := d.store.List()
 	for _, p := range projects {
 		k := config.NormalizeSessionName(p.Name)
 		if !seen[k] {
 			seen[k] = true
-			items = append(items, p.Name)
+			names = append(names, p.Name)
+		}
+		hasConfig[k] = true
+	}
+
+	projectsDir := resolver.ResolveRoot(d.global.ProjectsDir, "")
+	entries, _ := os.ReadDir(projectsDir)
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		k := config.NormalizeSessionName(e.Name())
+		if !seen[k] {
+			seen[k] = true
+			names = append(names, e.Name())
 		}
 	}
 
@@ -290,10 +308,21 @@ func collectPickerItems(d *deps) []string {
 		k := config.NormalizeSessionName(s.Name)
 		if !seen[k] {
 			seen[k] = true
-			items = append(items, s.Name)
+			names = append(names, s.Name)
 		}
 	}
 
+	sort.Strings(names)
+
+	items := make([]string, len(names))
+	for i, name := range names {
+		k := config.NormalizeSessionName(name)
+		if hasConfig[k] {
+			items[i] = name + " *"
+		} else {
+			items[i] = name
+		}
+	}
 	return items
 }
 

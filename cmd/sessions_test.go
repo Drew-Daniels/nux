@@ -280,15 +280,57 @@ func TestCollectPickerItems(t *testing.T) {
 
 	items := collectPickerItems(d)
 	if len(items) != 3 {
-		t.Fatalf("expected 3 items (blog, api, scratch), got %d: %v", len(items), items)
+		t.Fatalf("expected 3 items, got %d: %v", len(items), items)
 	}
 
 	seen := make(map[string]bool)
 	for _, item := range items {
 		seen[item] = true
 	}
-	if !seen["blog"] || !seen["api"] || !seen["scratch"] {
-		t.Errorf("missing expected items: %v", items)
+	if !seen["api *"] || !seen["blog *"] || !seen["scratch"] {
+		t.Errorf("expected api *, blog *, scratch; got %v", items)
+	}
+}
+
+func TestCollectPickerItems_IncludesProjectsDirEntries(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("blog", &config.ProjectConfig{Command: "a"})
+	for _, name := range []string{"blog", "notes", ".hidden"} {
+		if err := os.Mkdir(filepath.Join(d.global.ProjectsDir, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	items := collectPickerItems(d)
+	seen := make(map[string]bool)
+	for _, item := range items {
+		seen[item] = true
+	}
+	if !seen["blog *"] {
+		t.Errorf("expected blog * (has config + dir), got %v", items)
+	}
+	if !seen["notes"] {
+		t.Errorf("expected notes (dir only), got %v", items)
+	}
+	if seen[".hidden"] || seen[".hidden *"] {
+		t.Errorf("hidden dirs should be excluded, got %v", items)
+	}
+}
+
+func TestCollectPickerItems_Sorted(t *testing.T) {
+	d := testDeps(t)
+	_ = d.store.Save("zebra", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("alpha", &config.ProjectConfig{Command: "b"})
+
+	items := collectPickerItems(d)
+	if len(items) < 2 {
+		t.Fatalf("expected at least 2 items, got %v", items)
+	}
+	for i := 1; i < len(items); i++ {
+		if items[i] < items[i-1] {
+			t.Errorf("items not sorted: %v", items)
+			break
+		}
 	}
 }
 
@@ -304,8 +346,8 @@ func TestCollectPickerItems_DedupesNormalizedNames(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("expected 1 item, got %v", items)
 	}
-	if items[0] != "my.project" {
-		t.Fatalf("got %q, want my.project (project name wins over tmux session name)", items[0])
+	if items[0] != "my.project *" {
+		t.Fatalf("got %q, want \"my.project *\" (config name wins with indicator)", items[0])
 	}
 }
 
@@ -490,7 +532,7 @@ func TestRunBareNux_Picker(t *testing.T) {
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
 	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
 
-	fp := &fakePicker{choice: "blog"}
+	fp := &fakePicker{choice: "blog *"}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
 		return fp, nil
 	}
@@ -502,6 +544,40 @@ func TestRunBareNux_Picker(t *testing.T) {
 	if !fp.called {
 		t.Error("expected picker to be called")
 	}
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Error("expected NewSession after picker selection")
+	}
+}
+
+func TestRunBareNux_Picker_StripsIndicator(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.global.PickerOnBare = true
+	d.getwd = func() (string, error) { return "/some/other/dir", nil }
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+
+	fp := &fakePicker{choice: "blog *"}
+	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
+		return fp, nil
+	}
+
+	err := runBareNux(d)
+	if err != nil {
+		t.Fatalf("runBareNux: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	for _, c := range mock.Calls {
+		if c.Method == "NewSession" {
+			opts := c.Opts.(tmux.NewSessionOpts)
+			if strings.Contains(opts.Name, "*") {
+				t.Errorf("session name should not contain indicator: %q", opts.Name)
+			}
+			return
+		}
+	}
+	t.Error("expected NewSession call")
 }
 
 func TestRunBareNux_NoProjectsNoPicker(t *testing.T) {

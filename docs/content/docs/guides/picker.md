@@ -7,12 +7,23 @@ When you run **`nux` with no arguments** from a directory that is not tied to a 
 
 ## What the picker shows
 
-The picker combines:
+The picker combines three sources into a single sorted list:
 
-- **Running** tmux sessions
 - **Configured** projects (files in `~/.config/nux/projects/`)
+- **Directories** under `projects_dir` (top-level only, hidden directories excluded)
+- **Running** tmux sessions not covered by the above
 
-Entries are **deduplicated by normalized session name** (the same rules as tmux session names: dots and spaces become underscores, and so on). If a config file is named `my.project.yaml` and a session is already running as `my_project`, you see **one** row, using the **project config name** (`my.project`).
+Projects that have a config file are marked with a `*` suffix so you can tell at a glance which entries have custom configs and which use the default session template:
+
+```text
+  api *
+  blog *
+  dotfiles
+  notes
+  scratch
+```
+
+Entries are **deduplicated by normalized session name** (the same rules as tmux session names: dots and spaces become underscores, and so on). If a config file is named `my.project.yaml` and a session is already running as `my_project`, you see **one** row.
 
 Pick an entry to start or attach to it as usual.
 

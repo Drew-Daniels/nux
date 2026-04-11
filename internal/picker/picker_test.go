@@ -91,14 +91,29 @@ func TestFzfPicker_Success(t *testing.T) {
 	}
 }
 
-func TestFzfPicker_Error(t *testing.T) {
+func TestFzfPicker_Cancel(t *testing.T) {
 	p := &FzfPicker{
 		Build:  func(name string, args ...string) *exec.Cmd { return exec.Command("false") },
 		Stderr: &bytes.Buffer{},
 	}
+	result, err := p.Pick([]string{"blog"}, "project")
+	if err != nil {
+		t.Fatalf("cancel should not return error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("cancel should return empty string, got %q", result)
+	}
+}
+
+func TestFzfPicker_Error(t *testing.T) {
+	script := helperScript(t, "#!/bin/sh\nexit 2\n")
+	p := &FzfPicker{
+		Build:  func(name string, args ...string) *exec.Cmd { return exec.Command(script) },
+		Stderr: &bytes.Buffer{},
+	}
 	_, err := p.Pick([]string{"blog"}, "project")
 	if err == nil {
-		t.Fatal("expected error")
+		t.Fatal("expected error for non-cancel exit code")
 	}
 }
 
@@ -117,15 +132,18 @@ func TestGumPicker_Success(t *testing.T) {
 	}
 }
 
-func TestGumPicker_EmptyResult(t *testing.T) {
+func TestGumPicker_Cancel(t *testing.T) {
 	script := helperScript(t, "#!/bin/sh\necho\n")
 	p := &GumPicker{
 		Build:  func(name string, args ...string) *exec.Cmd { return exec.Command(script) },
 		Stderr: &bytes.Buffer{},
 	}
-	_, err := p.Pick([]string{"blog"}, "project")
-	if err == nil {
-		t.Fatal("expected error for empty selection")
+	result, err := p.Pick([]string{"blog"}, "project")
+	if err != nil {
+		t.Fatalf("cancel should not return error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("cancel should return empty string, got %q", result)
 	}
 }
 

@@ -3,6 +3,7 @@ package picker
 import (
 	"fmt"
 	"io"
+	"os/exec"
 	"strings"
 )
 
@@ -17,10 +18,10 @@ func (g *GumPicker) Pick(items []string, prompt string) (string, error) {
 
 	result, err := runExternal(g.Build, "gum", args, input, g.Stderr)
 	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 130 {
+			return "", nil
+		}
 		return "", fmt.Errorf("gum failed: %w", err)
-	}
-	if result == "" {
-		return "", fmt.Errorf("selection cancelled")
 	}
 	return result, nil
 }
