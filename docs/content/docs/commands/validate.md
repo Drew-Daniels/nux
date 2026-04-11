@@ -18,7 +18,7 @@ Validates project configuration files and reports errors. Each config is printed
 
 ### What gets checked
 
-- `command` and `windows` are mutually exclusive at the project level.
+- Every project must have at least one window with at least one pane.
 - Every window must have a `name`.
 - Every window must have at least one pane.
 - `layout` values must be a recognized tmux layout name or a valid custom layout string.
@@ -28,7 +28,7 @@ Validates project configuration files and reports errors. Each config is printed
 ```text
   [ok]    blog
   [ok]    api
-  [error] workers: "command" and "windows" are mutually exclusive
+  [error] workers: at least one window is required
 ```
 
 If any config has errors, nux exits with a non-zero status.

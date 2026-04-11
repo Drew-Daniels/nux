@@ -21,9 +21,11 @@ func TestStore_SaveLoadRoundTrip(t *testing.T) {
 	s := NewProjectStore(dir)
 
 	cfg := &ProjectConfig{
-		Root:    "~/projects/blog",
-		Command: "nvim",
-		Env:     map[string]string{"FOO": "bar"},
+		Root: "~/projects/blog",
+		Env:  map[string]string{"FOO": "bar"},
+		Windows: []Window{
+			{Name: "editor", Panes: []Pane{{Command: "nvim"}}},
+		},
 	}
 
 	if err := s.Save("blog", cfg); err != nil {
@@ -40,8 +42,8 @@ func TestStore_SaveLoadRoundTrip(t *testing.T) {
 	if loaded.Root != "~/projects/blog" {
 		t.Errorf("Root = %q, want ~/projects/blog", loaded.Root)
 	}
-	if loaded.Command != "nvim" {
-		t.Errorf("Command = %q, want nvim", loaded.Command)
+	if loaded.Windows[0].Panes[0].Command != "nvim" {
+		t.Errorf("pane command = %q, want nvim", loaded.Windows[0].Panes[0].Command)
 	}
 	if loaded.Env["FOO"] != "bar" {
 		t.Errorf("Env[FOO] = %q, want bar", loaded.Env["FOO"])
@@ -97,7 +99,7 @@ func TestStore_List_FiltersNonYAML(t *testing.T) {
 	dir := t.TempDir()
 	s := NewProjectStore(dir)
 
-	_ = s.Save("alpha", &ProjectConfig{Command: "a"})
+	_ = s.Save("alpha", &ProjectConfig{Windows: []Window{{Name: "main", Panes: []Pane{{Command: "a"}}}}})
 	_ = os.WriteFile(filepath.Join(dir, "readme.md"), []byte("# hi"), 0o644)
 	_ = os.Mkdir(filepath.Join(dir, "subdir"), 0o755)
 
@@ -117,7 +119,7 @@ func TestStore_Delete(t *testing.T) {
 	dir := t.TempDir()
 	s := NewProjectStore(dir)
 
-	_ = s.Save("deleteme", &ProjectConfig{Command: "echo"})
+	_ = s.Save("deleteme", &ProjectConfig{Windows: []Window{{Name: "main", Panes: []Pane{{Command: "echo"}}}}})
 	if err := s.Delete("deleteme"); err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
@@ -131,7 +133,7 @@ func TestStore_Save_CreatesDir(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "nested", "dir")
 	s := NewProjectStore(dir)
 
-	err := s.Save("proj", &ProjectConfig{Command: "echo"})
+	err := s.Save("proj", &ProjectConfig{Windows: []Window{{Name: "main", Panes: []Pane{{Command: "echo"}}}}})
 	if err != nil {
 		t.Fatalf("Save should create dirs: %v", err)
 	}

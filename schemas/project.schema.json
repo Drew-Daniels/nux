@@ -27,54 +27,10 @@
       "description": "Pane definition. A plain string is shorthand for {command: \u003cstring\u003e}."
     },
     "ProjectConfig": {
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "command": {
-                "minLength": 1
-              }
-            },
-            "required": [
-              "command"
-            ]
-          },
-          "then": {
-            "not": {
-              "required": [
-                "windows"
-              ]
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "windows": {
-                "minItems": 1
-              }
-            },
-            "required": [
-              "windows"
-            ]
-          },
-          "then": {
-            "not": {
-              "required": [
-                "command"
-              ]
-            }
-          }
-        }
-      ],
       "properties": {
         "root": {
           "type": "string",
           "description": "Project root directory. Supports ~ expansion and variable interpolation."
-        },
-        "command": {
-          "type": "string",
-          "description": "Command for a single-window session. Mutually exclusive with windows."
         },
         "on_start": {
           "items": {
@@ -123,11 +79,15 @@
             "$ref": "#/$defs/Window"
           },
           "type": "array",
-          "description": "Window definitions. Mutually exclusive with command."
+          "minItems": 1,
+          "description": "Window definitions for the session."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "required": [
+        "windows"
+      ]
     },
     "Window": {
       "properties": {

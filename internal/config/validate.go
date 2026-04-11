@@ -35,8 +35,8 @@ func layoutError(context, layout string) error {
 func Validate(cfg *ProjectConfig) []error {
 	var errs []error
 
-	if cfg.Command != "" && len(cfg.Windows) > 0 {
-		errs = append(errs, fmt.Errorf("command and windows are mutually exclusive"))
+	if len(cfg.Windows) == 0 {
+		errs = append(errs, fmt.Errorf("at least one window is required"))
 	}
 
 	errs = append(errs, validateWindows(cfg.Windows)...)

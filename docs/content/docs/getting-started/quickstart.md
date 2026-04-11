@@ -15,13 +15,17 @@ project_dirs: ~/projects
 default_shell: /bin/zsh
 pane_init:
   - eval "$(direnv hook zsh)"
-default_session: dev
+default_session:
+  windows:
+    - name: main
+      panes:
+        - dev
 ```
 
 - `project_dirs` - base directory or list of directories for convention-based project discovery; a string or YAML list of strings (default: `~/projects`). When multiple paths are set, nux scans all of them; the first entry is the base for relative `root` in project configs.
 - `default_shell` - shell used for new panes (optional, tmux default if omitted)
 - `pane_init` - commands run in each pane before pane-specific commands (optional)
-- `default_session` - template for projects without a config file; a plain string sets the command for a single-pane session
+- `default_session` - template for projects without a config file; an object with a `windows` array (same shape as project config), for example one window with a single pane command
 
 If you skip the global config entirely, nux uses built-in defaults (`project_dirs: ~/projects`, `picker: fzf`).
 

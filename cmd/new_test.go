@@ -74,7 +74,7 @@ func TestRunNewWith_PostSaveValidation(t *testing.T) {
 
 func TestRunNewWith_AlreadyExists(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	err := runNewWith(d, []string{"blog"})
 	if err == nil {

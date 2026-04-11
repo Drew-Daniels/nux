@@ -12,10 +12,9 @@ Point your YAML language server at these schemas to get completion, validation, 
 
 The schemas include:
 
-- **Mutual exclusivity** — `command` and `windows` in project configs are flagged if both are present.
 - **Required panes** — windows without at least one pane are flagged inline.
 - **Layout validation** — named layouts (`tiled`, `main-vertical`, etc.) get autocomplete, and custom tmux layout strings are also accepted.
-- **String-or-object shorthands** — `panes: [nvim]` and `default_session: nvim` are recognized as valid.
+- **String-or-object shorthands** — `panes: [nvim]` is recognized as valid.
 
 `nux config` and `nux new` automatically include the appropriate schema modeline in generated files. For existing configs or manual setup, use one of the methods below.
 

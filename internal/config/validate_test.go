@@ -19,16 +19,15 @@ func TestValidate_Valid(t *testing.T) {
 	}
 }
 
-func TestValidate_CommandAndWindowsMutuallyExclusive(t *testing.T) {
+func TestValidate_RequiresAtLeastOneWindow(t *testing.T) {
 	cfg := &ProjectConfig{
-		Command: "vim",
-		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
+		Root: "~/projects/test",
 	}
 	errs := Validate(cfg)
 	if len(errs) == 0 {
-		t.Fatal("expected error for command + windows")
+		t.Fatal("expected error for missing windows")
 	}
-	assertContains(t, errs[0].Error(), "mutually exclusive")
+	assertContains(t, errs[0].Error(), "at least one window")
 }
 
 func TestValidate_WindowRequiresPanes(t *testing.T) {
@@ -91,24 +90,13 @@ func TestValidate_CustomLayout(t *testing.T) {
 
 func TestValidate_MultipleErrors(t *testing.T) {
 	cfg := &ProjectConfig{
-		Command: "vim",
 		Windows: []Window{
 			{Layout: "bogus"},
 		},
 	}
 	errs := Validate(cfg)
-	if len(errs) < 4 {
-		t.Fatalf("expected at least 4 errors (mutually exclusive, name, panes, layout), got %d: %v", len(errs), errs)
-	}
-}
-
-func TestValidate_CommandOnlyIsValid(t *testing.T) {
-	cfg := &ProjectConfig{
-		Root:    "~/projects/test",
-		Command: "just dev",
-	}
-	if errs := Validate(cfg); len(errs) != 0 {
-		t.Fatalf("expected no errors, got %v", errs)
+	if len(errs) < 3 {
+		t.Fatalf("expected at least 3 errors (name, panes, layout), got %d: %v", len(errs), errs)
 	}
 }
 
@@ -120,8 +108,7 @@ func TestValidateAllWith(t *testing.T) {
 		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
 	})
 	_ = store.Save("invalid", &ProjectConfig{
-		Command: "vim",
-		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: "vim"}}}},
+		Windows: []Window{{Name: "", Layout: "bogus"}},
 	})
 
 	results, err := ValidateAllWith(store)

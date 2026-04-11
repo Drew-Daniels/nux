@@ -133,35 +133,13 @@ func TestBuildWindows_UnknownWindow(t *testing.T) {
 	}
 }
 
-func TestBuild_CommandOnly(t *testing.T) {
-	mock := &MockClient{}
-	builder := newTestBuilder(mock, nil)
-
-	cfg := &config.ProjectConfig{
-		Command: "npm start",
-	}
-
-	err := builder.Build("webapp", cfg, "/home/user/webapp")
-	if err != nil {
-		t.Fatalf("Build returned error: %v", err)
-	}
-
-	assertCalled(t, mock, "NewSession")
-	assertCalledWith(t, mock, "SendKeys", "npm start")
-
-	if mock.Called("NewWindow") {
-		t.Error("command-only build should not create extra windows")
-	}
-	if mock.Called("SplitWindow") {
-		t.Error("command-only build should not split windows")
-	}
-}
-
-func TestBuild_NilConfig_DefaultCommand(t *testing.T) {
+func TestBuild_NilConfig_DefaultSessionWithWindows(t *testing.T) {
 	mock := &MockClient{}
 	global := &config.GlobalConfig{
 		DefaultSession: &config.DefaultSession{
-			Command: "htop",
+			Windows: []config.Window{
+				{Name: "main", Panes: []config.Pane{{Command: "htop"}}},
+			},
 		},
 		PaneInit: []string{"export TERM=xterm"},
 	}
@@ -247,35 +225,12 @@ func TestBuild_RunCommand_NilConfig(t *testing.T) {
 	}
 }
 
-func TestBuild_RunCommand_OverridesDefaultSessionCommand(t *testing.T) {
-	mock := &MockClient{}
-	global := &config.GlobalConfig{
-		DefaultSession: &config.DefaultSession{Command: "htop"},
-	}
-	builder := newTestBuilder(mock, global)
-	builder.SetAdHocLayout(&AdHocLayout{Command: "fish"})
-
-	err := builder.Build("proj", nil, "/tmp/proj")
-	if err != nil {
-		t.Fatalf("Build returned error: %v", err)
-	}
-
-	assertCalledWith(t, mock, "SendKeys", "fish")
-
-	for _, c := range callsFor(mock, "SendKeys") {
-		if len(c.Args) >= 2 && c.Args[1] == "htop" {
-			t.Error("--run should override default_session command")
-		}
-	}
-}
-
 func TestBuild_RunCommand_OverridesDefaultSessionWindows(t *testing.T) {
 	mock := &MockClient{}
 	global := &config.GlobalConfig{
 		DefaultSession: &config.DefaultSession{
 			Windows: []config.Window{
 				{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
-				{Name: "shell", Panes: []config.Pane{{Command: ""}}},
 			},
 		},
 	}
@@ -428,7 +383,9 @@ func TestBuild_DefaultShell(t *testing.T) {
 	builder := newTestBuilder(mock, global)
 
 	cfg := &config.ProjectConfig{
-		Command: "echo hi",
+		Windows: []config.Window{
+			{Name: "main", Panes: []config.Pane{{Command: "echo hi"}}},
+		},
 	}
 
 	err := builder.Build("test", cfg, "/tmp")
@@ -530,10 +487,14 @@ func TestBuild_AdHocLayout_NilConfig_WithPaneInit(t *testing.T) {
 	}
 }
 
-func TestBuild_AdHocLayout_WithDefaultCommand(t *testing.T) {
+func TestBuild_AdHocLayout_WithDefaultWindows(t *testing.T) {
 	mock := &MockClient{}
 	global := &config.GlobalConfig{
-		DefaultSession: &config.DefaultSession{Command: "htop"},
+		DefaultSession: &config.DefaultSession{
+			Windows: []config.Window{
+				{Name: "main", Panes: []config.Pane{{Command: "htop"}}},
+			},
+		},
 	}
 	builder := newTestBuilder(mock, global)
 	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2})
@@ -549,7 +510,6 @@ func TestBuild_AdHocLayout_WithDefaultCommand(t *testing.T) {
 	}
 
 	assertCalledWith(t, mock, "SelectLayout", "tiled")
-	assertCalledWith(t, mock, "SendKeys", "htop")
 }
 
 func TestBuild_AdHocLayout_DoesNotOverrideConfigWindows(t *testing.T) {
@@ -634,10 +594,14 @@ func TestBuild_RunCommand_AdHocLayout(t *testing.T) {
 	}
 }
 
-func TestBuild_RunCommand_AdHocLayout_OverridesDefaultCommand(t *testing.T) {
+func TestBuild_RunCommand_AdHocLayout_OverridesDefaultWindows(t *testing.T) {
 	mock := &MockClient{}
 	global := &config.GlobalConfig{
-		DefaultSession: &config.DefaultSession{Command: "htop"},
+		DefaultSession: &config.DefaultSession{
+			Windows: []config.Window{
+				{Name: "main", Panes: []config.Pane{{Command: "htop"}}},
+			},
+		},
 	}
 	builder := newTestBuilder(mock, global)
 	builder.SetAdHocLayout(&AdHocLayout{Layout: "tiled", Panes: 2, Command: "fish"})
@@ -649,7 +613,7 @@ func TestBuild_RunCommand_AdHocLayout_OverridesDefaultCommand(t *testing.T) {
 
 	for _, c := range callsFor(mock, "SendKeys") {
 		if len(c.Args) >= 2 && c.Args[1] == "htop" {
-			t.Error("--run command should override default_session command")
+			t.Error("--run command should override default_session windows")
 		}
 	}
 	assertCalledWith(t, mock, "SendKeys", "fish")
@@ -962,8 +926,8 @@ func TestBuild_OnDetachHooks(t *testing.T) {
 	builder := newTestBuilder(mock, nil)
 
 	cfg := &config.ProjectConfig{
-		Command:  "echo hi",
 		OnDetach: []string{"echo detached"},
+		Windows:  []config.Window{{Name: "main", Panes: []config.Pane{{Command: "echo hi"}}}},
 	}
 
 	err := builder.Build("proj", cfg, "/tmp/proj")

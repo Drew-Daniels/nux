@@ -43,9 +43,9 @@ func TestExpandArgs_Group(t *testing.T) {
 
 func TestExpandArgs_GroupWithGlobMember(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("web-api", &config.ProjectConfig{Command: "a"})
-	_ = d.store.Save("web-ui", &config.ProjectConfig{Command: "b"})
-	_ = d.store.Save("other", &config.ProjectConfig{Command: "c"})
+	_ = d.store.Save("web-api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}}})
+	_ = d.store.Save("other", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "c"}}}}})
 	d.global.Groups = map[string][]string{
 		"batch": {"web+"},
 	}
@@ -96,9 +96,9 @@ func TestExpandArgs_MultiWindowTarget(t *testing.T) {
 
 func TestExpandArgs_Glob(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("web-api", &config.ProjectConfig{Command: "a"})
-	_ = d.store.Save("web-ui", &config.ProjectConfig{Command: "b"})
-	_ = d.store.Save("other", &config.ProjectConfig{Command: "c"})
+	_ = d.store.Save("web-api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
+	_ = d.store.Save("web-ui", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}}})
+	_ = d.store.Save("other", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "c"}}}}})
 
 	names, err := expandArgs(d, []string{"web+"})
 	if err != nil {
@@ -114,7 +114,7 @@ func TestRunSessions_Single(t *testing.T) {
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "vim",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := runSessions(d, []string{"blog"})
@@ -133,7 +133,7 @@ func TestRunSessions_SkipsExisting(t *testing.T) {
 	d.noAttach = true
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	err := runSessions(d, []string{"blog"})
 	if err != nil {
@@ -151,7 +151,7 @@ func TestRunSessions_WithVarOverrides(t *testing.T) {
 	d.vars = map[string]string{"greeting": "hello"}
 	_ = d.store.Save("api", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "echo {{greeting}}",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "echo {{greeting}}"}}}},
 		Vars:    map[string]string{"greeting": "hi"},
 	})
 
@@ -324,8 +324,8 @@ func TestTryAutoDetect_OutsideProjectDir(t *testing.T) {
 
 func TestCollectPickerItems(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "a"})
-	_ = d.store.Save("api", &config.ProjectConfig{Command: "b"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
+	_ = d.store.Save("api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}}})
 	mock := d.client.(*tmux.MockClient)
 	mock.ListSessionsReturn = []tmux.SessionInfo{
 		{Name: "blog"},
@@ -348,7 +348,7 @@ func TestCollectPickerItems(t *testing.T) {
 
 func TestCollectPickerItems_IncludesProjectDirEntries(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 	for _, name := range []string{"blog", "notes", ".hidden"} {
 		if err := os.Mkdir(filepath.Join(d.global.ProjectDirs[0], name), 0o755); err != nil {
 			t.Fatal(err)
@@ -373,8 +373,8 @@ func TestCollectPickerItems_IncludesProjectDirEntries(t *testing.T) {
 
 func TestCollectPickerItems_Sorted(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("zebra", &config.ProjectConfig{Command: "a"})
-	_ = d.store.Save("alpha", &config.ProjectConfig{Command: "b"})
+	_ = d.store.Save("zebra", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
+	_ = d.store.Save("alpha", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}}})
 
 	items := collectPickerItems(d)
 	if len(items) < 2 {
@@ -390,7 +390,7 @@ func TestCollectPickerItems_Sorted(t *testing.T) {
 
 func TestCollectPickerItems_DedupesNormalizedNames(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("my.project", &config.ProjectConfig{Command: "a"})
+	_ = d.store.Save("my.project", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 	mock := d.client.(*tmux.MockClient)
 	mock.ListSessionsReturn = []tmux.SessionInfo{
 		{Name: "my_project"},
@@ -427,7 +427,7 @@ func TestRunBareNux_AutoDetect(t *testing.T) {
 
 func TestRunSessions_AttachesLast(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	err := runSessions(d, []string{"blog"})
 	if err != nil {
@@ -584,7 +584,7 @@ func TestRunBareNux_Picker(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	fp := &fakePicker{choice: "blog *"}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -609,7 +609,7 @@ func TestRunBareNux_Picker_StripsIndicator(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	fp := &fakePicker{choice: "blog *"}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -669,7 +669,7 @@ func TestRunBareNux_PickerDismissed(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	fp := &fakePicker{choice: ""}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -690,7 +690,7 @@ func TestRunBareNux_PickerError(t *testing.T) {
 	d := testDeps(t)
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
 		return nil, fmt.Errorf("no picker binary")
@@ -751,7 +751,7 @@ func TestRunSessions_BuildError(t *testing.T) {
 	mock.DefaultError = fmt.Errorf("session failed")
 	_ = d.store.Save("blog", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "vim",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := runSessions(d, []string{"blog"})
@@ -856,17 +856,17 @@ func TestRunSessions_Subset_AdhocFlagsError(t *testing.T) {
 	}
 }
 
-func TestRunSessions_Subset_CommandOnlyConfigError(t *testing.T) {
+func TestRunSessions_Subset_MissingWindowError(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "vim",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 
 	err := runSessions(d, []string{"blog:editor"})
 	if err == nil {
-		t.Fatal("expected error for command-only project with :window")
+		t.Fatal("expected error when requested window does not exist")
 	}
 }
 

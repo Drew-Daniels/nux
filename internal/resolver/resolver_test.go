@@ -220,7 +220,7 @@ func TestResolve_FromConfig(t *testing.T) {
 
 func TestResolve_FromConfig_ValidationError(t *testing.T) {
 	r := testResolver(t, map[string]*config.ProjectConfig{
-		"bad": {Command: "vim", Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}}},
+		"bad": {Windows: []config.Window{{Name: "", Layout: "bogus"}}},
 	})
 
 	_, err := r.Resolve("bad")
@@ -358,9 +358,9 @@ func TestResolve_ZoxideFallsThrough(t *testing.T) {
 func TestExpandGlob_Method(t *testing.T) {
 	dir := t.TempDir()
 	store := config.NewProjectStore(dir)
-	_ = store.Save("web-api", &config.ProjectConfig{Command: "a"})
-	_ = store.Save("web-ui", &config.ProjectConfig{Command: "b"})
-	_ = store.Save("other", &config.ProjectConfig{Command: "c"})
+	_ = store.Save("web-api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
+	_ = store.Save("web-ui", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}}})
+	_ = store.Save("other", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "c"}}}}})
 
 	r := NewResolverWithStore(&config.GlobalConfig{}, store)
 	got, err := r.ExpandGlob("web+", nil)
@@ -405,7 +405,7 @@ func TestExpandGlob_DeduplicatesConfigAndDir(t *testing.T) {
 	}
 
 	store := config.NewProjectStore(t.TempDir())
-	_ = store.Save("web-api", &config.ProjectConfig{Command: "a"})
+	_ = store.Save("web-api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{projectsDir}}, store)
 
@@ -457,7 +457,7 @@ func TestExpandGlob_MultipleProjectDirs(t *testing.T) {
 
 func TestExpandGlob_EmptyProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
-	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
+	_ = store.Save("alpha", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{""}}, store)
 
@@ -472,7 +472,7 @@ func TestExpandGlob_EmptyProjectDirs(t *testing.T) {
 
 func TestExpandGlob_MissingProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
-	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
+	_ = store.Save("alpha", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
 	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{"/nonexistent/dir"}}, store)
 

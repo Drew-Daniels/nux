@@ -8,7 +8,7 @@ weight: 7
 ## Typical shape
 
 - **`root`** can be **omitted** or set to any directory (home, a log path, a repo, or `/tmp`).
-- For a **single command** and one pane, use the **command** shorthand instead of spelling out `windows` and `panes`.
+- For a **single command** and one pane, use one window with a single `panes` entry.
 
 ## Example configs
 
@@ -16,20 +16,29 @@ weight: 7
 
 ```yaml
 root: ~/projects/myapp
-command: pgcli postgresql://localhost/myapp
+windows:
+  - name: main
+    panes:
+      - pgcli postgresql://localhost/myapp
 ```
 
 **Log follower**
 
 ```yaml
 root: /var/log/myapp
-command: tail -f api.log
+windows:
+  - name: main
+    panes:
+      - tail -f api.log
 ```
 
 **Monitoring dashboard**
 
 ```yaml
-command: lazydocker
+windows:
+  - name: main
+    panes:
+      - lazydocker
 ```
 
 Adjust names and commands to match the tools you use.

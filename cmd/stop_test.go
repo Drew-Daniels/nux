@@ -13,7 +13,7 @@ func TestRunStopWith(t *testing.T) {
 	d := testDeps(t)
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runStopWith(d, []string{"blog"}); err != nil {
 		t.Fatalf("runStopWith: %v", err)
@@ -75,7 +75,7 @@ func TestRunStopWith_KillError(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	mock.DefaultError = fmt.Errorf("kill failed")
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	err := runStopWith(d, []string{"blog"})
 	if err == nil {

@@ -9,7 +9,7 @@ import (
 
 func TestRunEditWith_OpensEditor(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	editorPath := ""
 	d.openEditor = func(path string) error {
@@ -32,7 +32,7 @@ func TestRunEditWith_OpensEditor(t *testing.T) {
 func TestRunEditWith_NoEditor(t *testing.T) {
 	d := testDeps(t)
 	d.editor = ""
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	err := runEditWith(d, []string{"blog"})
 	if err == nil {
@@ -45,7 +45,7 @@ func TestRunEditWith_NoEditor(t *testing.T) {
 
 func TestRunEditWith_PostSaveValidation(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	d.openEditor = func(path string) error { return nil }
 
@@ -61,13 +61,12 @@ func TestRunEditWith_PostSaveValidation(t *testing.T) {
 
 func TestRunEditWith_PostSaveValidation_Invalid(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	d.openEditor = func(path string) error {
 		// Simulate user saving an invalid config
 		return d.store.Save("blog", &config.ProjectConfig{
-			Command: "vim",
-			Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+			Windows: []config.Window{{Name: "editor", Layout: "bogus", Panes: []config.Pane{{Command: "vim"}}}},
 		})
 	}
 

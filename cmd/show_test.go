@@ -10,9 +10,11 @@ import (
 func TestRunShowWith_WithConfig(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectDirs[0],
-		Command: "vim",
-		Env:     map[string]string{"NODE_ENV": "dev"},
+		Root: d.global.ProjectDirs[0],
+		Env:  map[string]string{"NODE_ENV": "dev"},
+		Windows: []config.Window{
+			{Name: "main", Panes: []config.Pane{{Command: "vim"}}},
+		},
 	})
 
 	if err := runShowWith(d, []string{"blog"}); err != nil {
@@ -71,10 +73,12 @@ func TestRunShowWith_Raw(t *testing.T) {
 	t.Cleanup(func() { showRaw = false })
 
 	_ = d.store.Save("api", &config.ProjectConfig{
-		Root:    "~/projects/api",
-		Command: "echo {{greeting}} $HOME",
-		Vars:    map[string]string{"greeting": "hi"},
-		Env:     map[string]string{"SECRET": "${API_KEY}"},
+		Root: "~/projects/api",
+		Vars: map[string]string{"greeting": "hi"},
+		Env:  map[string]string{"SECRET": "${API_KEY}"},
+		Windows: []config.Window{
+			{Name: "main", Panes: []config.Pane{{Command: "echo {{greeting}} $HOME"}}},
+		},
 	})
 
 	if err := runShowWith(d, []string{"api"}); err != nil {
@@ -108,11 +112,11 @@ func TestRunShowWith_GlobMultiDoc(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("web-api", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "a",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}},
 	})
 	_ = d.store.Save("web-ui", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "b",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "b"}}}},
 	})
 
 	if err := runShowWith(d, []string{"web+"}); err != nil {
@@ -132,11 +136,11 @@ func TestRunShowWith_Group(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("alpha", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "x",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "x"}}}},
 	})
 	_ = d.store.Save("bravo", &config.ProjectConfig{
 		Root:    d.global.ProjectDirs[0],
-		Command: "y",
+		Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "y"}}}},
 	})
 	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
 
@@ -154,9 +158,11 @@ func TestRunShowWith_WithVarOverrides(t *testing.T) {
 	d := testDeps(t)
 	d.vars = map[string]string{"port": "9090"}
 	_ = d.store.Save("api", &config.ProjectConfig{
-		Root:    d.global.ProjectDirs[0],
-		Command: "serve --port={{port}}",
-		Vars:    map[string]string{"port": "8080"},
+		Root: d.global.ProjectDirs[0],
+		Vars: map[string]string{"port": "8080"},
+		Windows: []config.Window{
+			{Name: "main", Panes: []config.Pane{{Command: "serve --port={{port}}"}}},
+		},
 	})
 
 	if err := runShowWith(d, []string{"api"}); err != nil {

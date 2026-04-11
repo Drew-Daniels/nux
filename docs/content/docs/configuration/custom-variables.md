@@ -7,7 +7,7 @@ The `vars` field in [project config]({{< relref "project-config" >}}) defines na
 
 ## `{{var}}` interpolation
 
-Use double-brace names in any string field - `root`, `command`, hooks, `env` values, and window or pane fields:
+Use double-brace names in any string field - `root`, hooks, `env` values, and window or pane fields (including pane `command` when using the object pane form):
 
 ```yaml
 vars:
@@ -64,7 +64,7 @@ Use sparingly - this runs a command every time nux resolves the config.
 {{< hint warning >}}
 **Trust model:** Backtick values execute arbitrary shell commands as your user. Only load config files you wrote or trust. If you receive a project config from someone else, review it before running `nux` against it.
 
-Config files can contain sensitive values in `env`, `vars`, and `command` fields. nux writes configs with owner-only permissions (`0600`), but prefer using environment variable references (`$SECRET`) or backtick commands that query a secrets manager over embedding secrets directly.
+Config files can contain sensitive values in `env`, `vars`, and pane commands. nux writes configs with owner-only permissions (`0600`), but prefer using environment variable references (`$SECRET`) or backtick commands that query a secrets manager over embedding secrets directly.
 {{< /hint >}}
 
 ## Template-style reuse

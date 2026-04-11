@@ -7,17 +7,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func TestDefaultSession_UnmarshalYAML_String(t *testing.T) {
+func TestDefaultSession_UnmarshalYAML_RejectsString(t *testing.T) {
 	input := `"htop"`
 	var ds DefaultSession
-	if err := yaml.Unmarshal([]byte(input), &ds); err != nil {
-		t.Fatalf("unmarshal: %v", err)
+	err := yaml.Unmarshal([]byte(input), &ds)
+	if err == nil {
+		t.Fatal("expected error for string default_session")
 	}
-	if ds.Command != "htop" {
-		t.Errorf("Command = %q, want htop", ds.Command)
+	if !strings.Contains(err.Error(), "must be an object") {
+		t.Errorf("expected actionable error, got %q", err.Error())
 	}
-	if len(ds.Windows) != 0 {
-		t.Errorf("expected no windows, got %d", len(ds.Windows))
+	if !strings.Contains(err.Error(), "htop") {
+		t.Errorf("expected suggestion with original value, got %q", err.Error())
 	}
 }
 
@@ -31,9 +32,6 @@ windows:
 	var ds DefaultSession
 	if err := yaml.Unmarshal([]byte(input), &ds); err != nil {
 		t.Fatalf("unmarshal: %v", err)
-	}
-	if ds.Command != "" {
-		t.Errorf("Command = %q, want empty", ds.Command)
 	}
 	if len(ds.Windows) != 1 {
 		t.Fatalf("expected 1 window, got %d", len(ds.Windows))
@@ -104,6 +102,23 @@ root: src
 	}
 	if p.Root != "src" {
 		t.Errorf("Root = %q, want src", p.Root)
+	}
+}
+
+func TestProjectConfig_UnmarshalYAML_RejectsCommand(t *testing.T) {
+	input := `
+command: vim
+`
+	var cfg ProjectConfig
+	err := yaml.Unmarshal([]byte(input), &cfg)
+	if err == nil {
+		t.Fatal("expected error for project-level command")
+	}
+	if !strings.Contains(err.Error(), "not a valid project field") {
+		t.Errorf("expected actionable error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "windows") {
+		t.Errorf("expected windows suggestion, got %q", err.Error())
 	}
 }
 

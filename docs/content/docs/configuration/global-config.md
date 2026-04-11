@@ -54,8 +54,7 @@ Commands run in **every** pane of **every** session before any pane-specific com
 
 Template used when a project has no config file (see [Default session]({{< relref "default-session" >}})).
 
-- **String shorthand:** a single value treated as a one-window command (for example `nvim`).
-- **Object form:** an object with optional `command` and a `windows` array (same window shape as [project config]({{< relref "project-config" >}}), not a full project file).
+- **Object form:** an object with a `windows` array (same window shape as [project config]({{< relref "project-config" >}}), not a full project file).
 
 If omitted, projects without config files get a bare session with a single empty window.
 
@@ -157,7 +156,11 @@ project_dirs:
   - ~/work
   - ~/oss
 
-default_session: nvim
+default_session:
+  windows:
+    - name: main
+      panes:
+        - nvim
 
 picker: fzf
 picker_on_bare: true

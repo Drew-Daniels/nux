@@ -64,27 +64,13 @@ func (StringOrList) JSONSchema() *jsonschema.Schema {
 
 // DefaultSession is the template applied to projects without a config file.
 type DefaultSession struct {
-	Command string   `yaml:"command" json:"command,omitempty" jsonschema:"description=Command to run in the first pane (string shorthand form)."`
 	Windows []Window `yaml:"windows" json:"windows,omitempty" jsonschema:"description=Window definitions for the default session template."`
 }
 
-func (DefaultSession) JSONSchemaExtend(s *jsonschema.Schema) {
-	obj := *s
-	s.Properties = nil
-	s.AdditionalProperties = nil
-	s.Type = ""
-	s.OneOf = []*jsonschema.Schema{
-		{Type: "string", Description: "Command shorthand — creates a single-pane session running this command."},
-		&obj,
-	}
-	s.Description = "Template for projects without a config file. A plain string sets the command for a single-pane session."
-}
-
-// UnmarshalYAML allows DefaultSession to be a plain string or a full object.
+// UnmarshalYAML rejects the removed string shorthand with an actionable message.
 func (ds *DefaultSession) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
-		ds.Command = value.Value
-		return nil
+		return fmt.Errorf("default_session must be an object with a windows array, not a string; use default_session: {windows: [{name: main, panes: [%s]}]}", value.Value)
 	}
 	type raw DefaultSession
 	return value.Decode((*raw)(ds))
@@ -93,38 +79,30 @@ func (ds *DefaultSession) UnmarshalYAML(value *yaml.Node) error {
 // ProjectConfig represents a single project YAML file.
 type ProjectConfig struct {
 	Root     string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Project root directory. Supports ~ expansion and variable interpolation."`
-	Command  string            `yaml:"command" json:"command,omitempty" jsonschema:"description=Command for a single-window session. Mutually exclusive with windows."`
 	OnStart  []string          `yaml:"on_start" json:"on_start,omitempty" jsonschema:"description=Commands sent to the first pane after the session is created."`
 	OnReady  []string          `yaml:"on_ready" json:"on_ready,omitempty" jsonschema:"description=Commands sent to the first pane once at the end of the initial session build."`
 	OnDetach []string          `yaml:"on_detach" json:"on_detach,omitempty" jsonschema:"description=Commands run each time a client detaches."`
 	OnStop   []string          `yaml:"on_stop" json:"on_stop,omitempty" jsonschema:"description=Commands run when the session is closed."`
 	Env      map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set for all panes via tmux set-environment."`
 	Vars     map[string]string `yaml:"vars" json:"vars,omitempty" jsonschema:"description=Custom variables for {{var}} interpolation in config values."`
-	Windows  []Window          `yaml:"windows" json:"windows,omitempty" jsonschema:"description=Window definitions. Mutually exclusive with command."`
+	Windows  []Window          `yaml:"windows" json:"windows" jsonschema:"required,minItems=1,description=Window definitions for the session."`
 }
 
-// ProjectConfig.JSONSchemaExtend adds if/then constraints for the mutual
-// exclusivity of command and windows.
-func (ProjectConfig) JSONSchemaExtend(s *jsonschema.Schema) {
-	hasCommand := jsonschema.NewProperties()
-	hasCommand.Set("command", &jsonschema.Schema{MinLength: newUint64(1)})
-
-	hasWindows := jsonschema.NewProperties()
-	hasWindows.Set("windows", &jsonschema.Schema{MinItems: newUint64(1)})
-
-	s.AllOf = []*jsonschema.Schema{
-		{
-			If:   &jsonschema.Schema{Properties: hasCommand, Required: []string{"command"}},
-			Then: &jsonschema.Schema{Not: &jsonschema.Schema{Required: []string{"windows"}}},
-		},
-		{
-			If:   &jsonschema.Schema{Properties: hasWindows, Required: []string{"windows"}},
-			Then: &jsonschema.Schema{Not: &jsonschema.Schema{Required: []string{"command"}}},
-		},
+// UnmarshalYAML rejects the removed command field with an actionable message.
+func (pc *ProjectConfig) UnmarshalYAML(value *yaml.Node) error {
+	type raw ProjectConfig
+	if err := value.Decode((*raw)(pc)); err != nil {
+		return err
 	}
+	if value.Kind == yaml.MappingNode {
+		for i := 0; i < len(value.Content)-1; i += 2 {
+			if value.Content[i].Value == "command" {
+				return fmt.Errorf("\"command\" is not a valid project field; use windows instead (e.g. windows: [{name: main, panes: [%s]}])", value.Content[i+1].Value)
+			}
+		}
+	}
+	return nil
 }
-
-func newUint64(v uint64) *uint64 { return &v }
 
 // Window defines a tmux window inside a project session.
 type Window struct {

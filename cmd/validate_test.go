@@ -39,8 +39,7 @@ func TestValidateAll_AllValid(t *testing.T) {
 func TestValidateAll_WithErrors(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
-		Command: "vim",
-		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+		Windows: []config.Window{{Name: "", Layout: "bogus"}},
 	})
 
 	err := validateAll(d)
@@ -73,8 +72,7 @@ func TestValidateProject_Valid(t *testing.T) {
 func TestValidateProject_Invalid(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
-		Command: "vim",
-		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+		Windows: []config.Window{{Name: "", Layout: "bogus"}},
 	})
 
 	err := validateProject(d, "bad")

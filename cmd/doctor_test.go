@@ -82,8 +82,7 @@ func TestRunDoctorChecks_PickerMissing(t *testing.T) {
 func TestRunDoctorChecks_InvalidConfig(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("bad", &config.ProjectConfig{
-		Command: "vim",
-		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
+		Windows: []config.Window{{Name: "", Layout: "bogus"}},
 	})
 
 	_ = runDoctorChecks(d)

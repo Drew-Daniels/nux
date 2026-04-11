@@ -14,8 +14,10 @@ func TestRunRestartWith_VarOverrides(t *testing.T) {
 	// No vars in file so Resolve leaves {{greeting}} in Command; applyVarOverrides
 	// merges CLI vars before RestartSession builds.
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectDirs[0],
-		Command: "echo {{greeting}}",
+		Root: d.global.ProjectDirs[0],
+		Windows: []config.Window{
+			{Name: "main", Panes: []config.Pane{{Command: "echo {{greeting}}"}}},
+		},
 	})
 
 	if err := runRestartWith(d, []string{"blog"}); err != nil {

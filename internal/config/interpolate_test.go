@@ -6,11 +6,12 @@ import (
 
 func TestInterpolate_CustomVars(t *testing.T) {
 	cfg := &ProjectConfig{
-		Root:    "~/projects/{{name}}",
-		Command: "{{cmd}}",
+		Root: "~/projects/{{name}}",
 		Vars: map[string]string{
 			"name": "my-project",
-			"cmd":  "nvim",
+		},
+		Windows: []Window{
+			{Name: "editor", Panes: []Pane{{Command: "{{name}}"}}},
 		},
 	}
 	if err := NewInterpolator().Interpolate(cfg); err != nil {
@@ -19,8 +20,8 @@ func TestInterpolate_CustomVars(t *testing.T) {
 	if cfg.Root != "~/projects/my-project" {
 		t.Errorf("root = %q, want ~/projects/my-project", cfg.Root)
 	}
-	if cfg.Command != "nvim" {
-		t.Errorf("command = %q, want nvim", cfg.Command)
+	if cfg.Windows[0].Panes[0].Command != "my-project" {
+		t.Errorf("pane command = %q, want my-project", cfg.Windows[0].Panes[0].Command)
 	}
 }
 
@@ -100,14 +101,16 @@ func TestInterpolate_WindowsAndPanes(t *testing.T) {
 
 func TestInterpolate_BacktickCommand(t *testing.T) {
 	cfg := &ProjectConfig{
-		Command: "{{out}}",
-		Vars:    map[string]string{"out": "`echo hello`"},
+		Vars: map[string]string{"out": "`echo hello`"},
+		Windows: []Window{
+			{Name: "main", Panes: []Pane{{Command: "{{out}}"}}},
+		},
 	}
 	if err := NewInterpolator().Interpolate(cfg); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Command != "hello" {
-		t.Errorf("command = %q, want hello", cfg.Command)
+	if cfg.Windows[0].Panes[0].Command != "hello" {
+		t.Errorf("pane command = %q, want hello", cfg.Windows[0].Panes[0].Command)
 	}
 }
 
@@ -141,18 +144,19 @@ func TestInterpolate_WindowEnv(t *testing.T) {
 func TestInterpolateVars_OnlyExpandsVars(t *testing.T) {
 	t.Setenv("NUX_TEST_SHOULD_NOT_EXPAND", "expanded")
 	cfg := &ProjectConfig{
-		Root:    "$NUX_TEST_SHOULD_NOT_EXPAND/{{name}}",
-		Command: "{{cmd}}",
+		Root: "$NUX_TEST_SHOULD_NOT_EXPAND/{{name}}",
 		Vars: map[string]string{
 			"name": "my-project",
-			"cmd":  "nvim",
+		},
+		Windows: []Window{
+			{Name: "main", Panes: []Pane{{Command: "{{name}}"}}},
 		},
 	}
 	if err := NewInterpolator().InterpolateVars(cfg); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Command != "nvim" {
-		t.Errorf("command = %q, want nvim", cfg.Command)
+	if cfg.Windows[0].Panes[0].Command != "my-project" {
+		t.Errorf("pane command = %q, want my-project", cfg.Windows[0].Panes[0].Command)
 	}
 	if cfg.Root != "$NUX_TEST_SHOULD_NOT_EXPAND/my-project" {
 		t.Errorf("root = %q, want $NUX_TEST_SHOULD_NOT_EXPAND/my-project (env should not expand)", cfg.Root)
@@ -161,8 +165,10 @@ func TestInterpolateVars_OnlyExpandsVars(t *testing.T) {
 
 func TestInterpolate_NoVars(t *testing.T) {
 	cfg := &ProjectConfig{
-		Root:    "~/projects/plain",
-		Command: "vim",
+		Root: "~/projects/plain",
+		Windows: []Window{
+			{Name: "main", Panes: []Pane{{Command: "vim"}}},
+		},
 	}
 	if err := NewInterpolator().Interpolate(cfg); err != nil {
 		t.Fatal(err)

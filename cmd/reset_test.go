@@ -26,7 +26,7 @@ func TestRunResetWith_RemovesConfig(t *testing.T) {
 	resetProjects = false
 	t.Cleanup(func() { resetForce = false })
 
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runResetWith(d); err != nil {
 		t.Fatalf("runResetWith: %v", err)
@@ -53,7 +53,7 @@ func TestRunResetWith_RemovesProjects(t *testing.T) {
 	resetProjects = true
 	t.Cleanup(func() { resetForce = false; resetProjects = false })
 
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runResetWith(d); err != nil {
 		t.Fatalf("runResetWith: %v", err)
@@ -74,7 +74,7 @@ func TestRunResetWith_PreviewShowsWillRemoveAndKeep(t *testing.T) {
 	resetProjects = false
 	t.Cleanup(func() { resetForce = false })
 
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runResetWith(d); err != nil {
 		t.Fatalf("runResetWith: %v", err)
@@ -101,7 +101,7 @@ func TestRunResetWith_PreviewWithProjects(t *testing.T) {
 	resetProjects = true
 	t.Cleanup(func() { resetForce = false; resetProjects = false })
 
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runResetWith(d); err != nil {
 		t.Fatalf("runResetWith: %v", err)

@@ -11,8 +11,8 @@ import (
 
 func TestRunListWith_WithProjects(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: "~/blog", Command: "vim"})
-	_ = d.store.Save("api", &config.ProjectConfig{Root: "~/api", Command: "go run ."})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: "~/blog", Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
+	_ = d.store.Save("api", &config.ProjectConfig{Root: "~/api", Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "go run ."}}}}})
 
 	mock := d.client.(*tmux.MockClient)
 	mock.ListSessionsReturn = []tmux.SessionInfo{
@@ -52,7 +52,7 @@ func TestRunListWith_SessionsError(t *testing.T) {
 	d := testDeps(t)
 	mock := d.client.(*tmux.MockClient)
 	mock.ListSessionsError = fmt.Errorf("tmux not running")
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: "~/blog", Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: "~/blog", Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runListWith(d); err != nil {
 		t.Fatalf("runListWith: %v", err)

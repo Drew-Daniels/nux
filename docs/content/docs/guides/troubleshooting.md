@@ -39,7 +39,7 @@ For example, `my.api-server.yaml` becomes session `my_api-server`. Run `nux list
 
 ## Commands not running in panes
 
-If `command` values in your config aren't executing:
+If pane commands in your config aren't executing:
 
 1. Check that `pane_init` commands in global config aren't interfering. nux sends `pane_init` commands before each pane's command via `SendKeys`. If a `pane_init` command starts an interactive process, subsequent commands won't reach the shell.
 

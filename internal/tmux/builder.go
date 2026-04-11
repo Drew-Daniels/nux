@@ -77,10 +77,7 @@ func (b *Builder) Build(name string, cfg *config.ProjectConfig, root string) err
 	if cfg == nil {
 		return b.buildDefault(name, root)
 	}
-	if len(cfg.Windows) > 0 {
-		return b.buildWindowed(name, cfg, root)
-	}
-	return b.buildCommand(name, cfg, root)
+	return b.buildWindowed(name, cfg, root)
 }
 
 func (b *Builder) buildDefault(name, root string) error {
@@ -89,42 +86,23 @@ func (b *Builder) buildDefault(name, root string) error {
 	// -x: ignore the default session template, use ad-hoc or bare.
 	if b.adHocCommand() != "" {
 		if b.hasAdHocPanes() {
-			return b.buildAdHoc(name, root, nil)
+			return b.buildAdHoc(name, root)
 		}
 		return b.buildBare(name, root)
 	}
 
-	// --layout/--panes without -x: ad-hoc layout, fall back to ds.Command.
+	// --layout/--panes without -x: ad-hoc layout.
 	if b.hasAdHocPanes() {
-		return b.buildAdHoc(name, root, ds)
+		return b.buildAdHoc(name, root)
 	}
 
 	// No flags and no default session: bare shell.
-	if ds == nil {
+	if ds == nil || len(ds.Windows) == 0 {
 		return b.buildBare(name, root)
 	}
 
 	// Default session with windows: build them.
-	if len(ds.Windows) > 0 {
-		return b.buildWindowed(name, &config.ProjectConfig{Windows: ds.Windows}, root)
-	}
-
-	// Default session with a command (or empty): single pane.
-	return b.buildDefaultCommand(name, root, ds)
-}
-
-func (b *Builder) buildDefaultCommand(name, root string, ds *config.DefaultSession) error {
-	if err := b.createDetachedSession(name, root, ""); err != nil {
-		return err
-	}
-
-	firstWindow := name + ":" + b.firstWindow()
-	var errs []error
-	errs = append(errs, b.sendPaneInit(firstWindow)...)
-	if ds.Command != "" {
-		errs = append(errs, b.client.SendKeys(firstWindow, ds.Command))
-	}
-	return errors.Join(errs...)
+	return b.buildWindowed(name, &config.ProjectConfig{Windows: ds.Windows}, root)
 }
 
 func (b *Builder) buildBare(name, root string) error {
@@ -144,7 +122,7 @@ func (b *Builder) buildBare(name, root string) error {
 	return errors.Join(errs...)
 }
 
-func (b *Builder) buildAdHoc(name, root string, ds *config.DefaultSession) error {
+func (b *Builder) buildAdHoc(name, root string) error {
 	if err := b.createDetachedSession(name, root, ""); err != nil {
 		return err
 	}
@@ -171,27 +149,7 @@ func (b *Builder) buildAdHoc(name, root string, ds *config.DefaultSession) error
 		}
 	}
 
-	if cmd == "" && ds != nil && ds.Command != "" {
-		errs = append(errs, b.client.SendKeys(fmt.Sprintf("%s.%d", target, pb), ds.Command))
-	}
-
 	errs = append(errs, b.client.SelectPane(name, fw, pb))
-
-	return errors.Join(errs...)
-}
-
-func (b *Builder) buildCommand(name string, cfg *config.ProjectConfig, root string) error {
-	if err := b.createDetachedSession(name, root, ""); err != nil {
-		return err
-	}
-
-	firstWindow := name + ":" + b.firstWindow()
-	var errs []error
-
-	errs = append(errs, b.applySessionSettings(name, cfg, firstWindow)...)
-	errs = append(errs, b.sendPaneInit(firstWindow)...)
-	errs = append(errs, b.client.SendKeys(firstWindow, cfg.Command))
-	errs = append(errs, b.sendOnReady(cfg, firstWindow)...)
 
 	return errors.Join(errs...)
 }

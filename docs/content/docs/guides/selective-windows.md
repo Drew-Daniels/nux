@@ -25,7 +25,7 @@ Creates the session with **only** the listed windows, in **the order you list** 
 
 If the session **already exists**, nux selects the **first** window you listed and attaches (it does not rebuild the session or replay hooks).
 
-You cannot combine `:window` targets with `--run`, `--layout`, or `--panes`. Projects that use the single `command` form (no `windows` array) cannot use `:window`.
+You cannot combine `:window` targets with `--run`, `--layout`, or `--panes`.
 
 ## Restart
 

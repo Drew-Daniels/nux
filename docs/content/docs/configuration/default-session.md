@@ -9,21 +9,11 @@ When a project has **no** config file under `~/.config/nux/projects/`, nux build
 
 If `default_session` is omitted from global config entirely, nux still creates a session - it just gets a single empty window with no commands. This is a bare tmux session rooted at the project directory.
 
-## String shorthand
-
-A single string is treated as one window running that command:
-
-```yaml
-default_session: nvim
-```
-
-This creates a session with one window. The `pane_init` commands (if configured) run first, then `nvim` is sent as a keystroke.
-
 ## Object form
 
 Use an object with a `windows` array. Each window uses the **same fields** as in a [project config]({{< relref "project-config" >}}) (`name`, `panes`, `layout`, `env`, and so on). Every window must have at least one pane.
 
-`default_session` itself only accepts **`command`** (single-pane fallback for the whole template) and **`windows`**. It does **not** support project-level options such as `root`, `vars`, top-level `env`, or lifecycle hooks (`on_start`, `on_ready`, …). For those, add a real project file under `projects/`.
+`default_session` only accepts **`windows`**. It does **not** support project-level options such as `root`, `vars`, top-level `env`, or lifecycle hooks (`on_start`, `on_ready`, …). For those, add a real project file under `projects/`.
 
 ```yaml
 default_session:
@@ -46,7 +36,7 @@ Multi-pane windows are defined with a window-level `panes` list. The first pane 
 
 ## Interaction with `pane_init`
 
-[`pane_init`]({{< relref "global-config" >}}) commands run in every pane of every session, including default sessions. They execute before the `default_session` command or window commands.
+[`pane_init`]({{< relref "global-config" >}}) commands run in every pane of every session, including default sessions. They execute before each pane's command.
 
 ## When default sessions are used
 

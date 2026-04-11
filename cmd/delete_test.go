@@ -10,7 +10,7 @@ import (
 func TestRunDeleteWith_Force(t *testing.T) {
 	d := testDeps(t)
 	d.deleteForce = true
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runDeleteWith(d, []string{"blog"}); err != nil {
 		t.Fatalf("runDeleteWith: %v", err)
@@ -30,7 +30,7 @@ func TestRunDeleteWith_Force(t *testing.T) {
 func TestRunDeleteWith_Confirmed(t *testing.T) {
 	d := testDeps(t)
 	d.confirm = func(string) (bool, error) { return true, nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runDeleteWith(d, []string{"blog"}); err != nil {
 		t.Fatalf("runDeleteWith: %v", err)
@@ -45,7 +45,7 @@ func TestRunDeleteWith_Confirmed(t *testing.T) {
 func TestRunDeleteWith_Cancelled(t *testing.T) {
 	d := testDeps(t)
 	d.confirm = func(string) (bool, error) { return false, nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
 
 	if err := runDeleteWith(d, []string{"blog"}); err != nil {
 		t.Fatalf("runDeleteWith: %v", err)

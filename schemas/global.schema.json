@@ -4,30 +4,17 @@
   "$ref": "#/$defs/GlobalConfig",
   "$defs": {
     "DefaultSession": {
-      "oneOf": [
-        {
-          "type": "string",
-          "description": "Command shorthand — creates a single-pane session running this command."
-        },
-        {
-          "properties": {
-            "command": {
-              "type": "string",
-              "description": "Command to run in the first pane (string shorthand form)."
-            },
-            "windows": {
-              "items": {
-                "$ref": "#/$defs/Window"
-              },
-              "type": "array",
-              "description": "Window definitions for the default session template."
-            }
+      "properties": {
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/Window"
           },
-          "additionalProperties": false,
-          "type": "object"
+          "type": "array",
+          "description": "Window definitions for the default session template."
         }
-      ],
-      "description": "Template for projects without a config file. A plain string sets the command for a single-pane session."
+      },
+      "additionalProperties": false,
+      "type": "object"
     },
     "GlobalConfig": {
       "properties": {

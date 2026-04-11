@@ -65,9 +65,9 @@ nux normalizes session names from the config filename: dots, colons, and spaces 
 
 Global options live in `~/.config/nux/config.yaml`. nux follows the XDG Base Directory Specification, so if `$XDG_CONFIG_HOME` is set, it uses that instead of `~/.config`.
 
-## Single command shorthand
+## Simple single-process sessions
 
-nux supports a **`command`** shorthand for simple single-window sessions. tmuxinator always models windows and panes explicitly; there is no direct equivalent, but it is useful for small projects.
+nux requires at least one window with `panes`, like tmuxinator. For a single TUI or long-running command, use one window and one pane string (or a pane object with `command`).
 
 ## Side-by-side example
 
