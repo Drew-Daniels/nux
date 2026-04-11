@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/Drew-Daniels/nux/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -37,5 +38,26 @@ func runEditWith(d *deps, args []string) error {
 		return fmt.Errorf("$EDITOR is not set")
 	}
 
-	return d.openEditor(path)
+	if err := d.openEditor(path); err != nil {
+		return err
+	}
+
+	return validateProjectAfterEdit(d, name)
+}
+
+func validateProjectAfterEdit(d *deps, name string) error {
+	cfg, _, err := d.store.Load(name)
+	if err != nil {
+		_, _ = fmt.Fprintf(d.stderr, "warning: config has syntax errors: %v\n", err)
+		return nil
+	}
+
+	errs := config.Validate(cfg)
+	for _, e := range errs {
+		_, _ = fmt.Fprintf(d.stderr, "  [error] %v\n", e)
+	}
+	if len(errs) == 0 {
+		_, _ = fmt.Fprintln(d.stdout, "Config valid.")
+	}
+	return nil
 }

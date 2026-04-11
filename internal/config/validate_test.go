@@ -172,6 +172,74 @@ func TestValidateAllWith_LoadError(t *testing.T) {
 	}
 }
 
+func TestValidateGlobal_Valid(t *testing.T) {
+	dir := t.TempDir()
+	cfg := &GlobalConfig{
+		Picker:      "fzf",
+		ProjectDirs: StringOrList{dir},
+	}
+	errs, warnings := ValidateGlobal(cfg)
+	if len(errs) != 0 {
+		t.Fatalf("expected no errors, got %v", errs)
+	}
+	if len(warnings) != 0 {
+		t.Fatalf("expected no warnings, got %v", warnings)
+	}
+}
+
+func TestValidateGlobal_InvalidPicker(t *testing.T) {
+	cfg := &GlobalConfig{Picker: "rofi"}
+	errs, _ := ValidateGlobal(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for invalid picker")
+	}
+	assertContains(t, errs[0].Error(), "invalid value")
+}
+
+func TestValidateGlobal_EmptyProjectDir(t *testing.T) {
+	cfg := &GlobalConfig{ProjectDirs: StringOrList{"  "}}
+	errs, _ := ValidateGlobal(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for empty project_dirs entry")
+	}
+	assertContains(t, errs[0].Error(), "empty path")
+}
+
+func TestValidateGlobal_MissingProjectDir(t *testing.T) {
+	cfg := &GlobalConfig{ProjectDirs: StringOrList{"/nonexistent/path"}}
+	_, warnings := ValidateGlobal(cfg)
+	if len(warnings) == 0 {
+		t.Fatal("expected warning for missing project dir")
+	}
+	assertContains(t, warnings[0].Error(), "does not exist")
+}
+
+func TestValidateGlobal_InvalidDefaultSessionWindow(t *testing.T) {
+	cfg := &GlobalConfig{
+		DefaultSession: &DefaultSession{
+			Windows: []Window{
+				{Name: "editor", Layout: "bogus"},
+			},
+		},
+	}
+	errs, _ := ValidateGlobal(cfg)
+	if len(errs) == 0 {
+		t.Fatal("expected error for invalid default_session window")
+	}
+	assertContains(t, errs[0].Error(), "default_session")
+}
+
+func TestValidateGlobal_EmptyGroup(t *testing.T) {
+	cfg := &GlobalConfig{
+		Groups: map[string][]string{"empty": {}},
+	}
+	_, warnings := ValidateGlobal(cfg)
+	if len(warnings) == 0 {
+		t.Fatal("expected warning for empty group")
+	}
+	assertContains(t, warnings[0].Error(), "empty")
+}
+
 func assertContains(t *testing.T, s, substr string) {
 	t.Helper()
 	if !strings.Contains(s, substr) {

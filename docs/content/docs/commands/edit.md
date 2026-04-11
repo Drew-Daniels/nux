@@ -33,7 +33,10 @@ export EDITOR=code    # VS Code
 export EDITOR=nano    # Nano
 ```
 
+## Post-save validation
+
+When the editor closes, nux re-loads and validates the config. Errors are printed as `[error]` and a clean config prints `Config valid.` If the YAML is unparseable, a syntax error warning is shown instead.
+
 ## Notes
 
-- After editing, run `nux validate <name>` to check for syntax errors before starting the session.
 - To pick up config changes in a running session, use `nux restart <name>`.

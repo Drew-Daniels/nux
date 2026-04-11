@@ -45,6 +45,10 @@ nux new blog
 unset EDITOR && nux new api
 ```
 
+## Post-save validation
+
+When the editor closes, nux re-loads and validates the config. Errors are printed as `[error]` and a clean config prints `Config valid.` If the YAML is unparseable, a syntax error warning is shown instead.
+
 ## Notes
 
 - The project name comes from the argument, not from a field inside the YAML. The filename `blog.yaml` means the project is called `blog`.

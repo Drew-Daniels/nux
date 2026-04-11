@@ -90,6 +90,64 @@ func TestRunConfigWith_DoesNotOverwriteExisting(t *testing.T) {
 	}
 }
 
+func TestRunConfigWith_PostSaveValidation(t *testing.T) {
+	d := testDeps(t)
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	_ = os.WriteFile(cfgPath, []byte("picker: fzf\n"), 0o644)
+
+	d.openEditor = func(path string) error { return nil }
+
+	if err := runConfigWith(d, cfgDir); err != nil {
+		t.Fatalf("runConfigWith: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if !strings.Contains(out, "Config valid") {
+		t.Errorf("expected 'Config valid' in output, got %q", out)
+	}
+}
+
+func TestRunConfigWith_PostSaveValidation_Invalid(t *testing.T) {
+	d := testDeps(t)
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	_ = os.WriteFile(cfgPath, []byte("picker: fzf\n"), 0o644)
+
+	d.openEditor = func(path string) error {
+		return os.WriteFile(path, []byte("picker: rofi\n"), 0o644)
+	}
+
+	if err := runConfigWith(d, cfgDir); err != nil {
+		t.Fatalf("runConfigWith: %v", err)
+	}
+
+	stderr := stderrStr(d)
+	if !strings.Contains(stderr, "[error]") {
+		t.Errorf("expected [error] in stderr, got %q", stderr)
+	}
+}
+
+func TestRunConfigWith_PostSaveValidation_SyntaxError(t *testing.T) {
+	d := testDeps(t)
+	cfgDir := t.TempDir()
+	cfgPath := filepath.Join(cfgDir, "config.yaml")
+	_ = os.WriteFile(cfgPath, []byte("picker: fzf\n"), 0o644)
+
+	d.openEditor = func(path string) error {
+		return os.WriteFile(path, []byte(":\n  bad: ["), 0o644)
+	}
+
+	if err := runConfigWith(d, cfgDir); err != nil {
+		t.Fatalf("runConfigWith should not return error for syntax issues: %v", err)
+	}
+
+	stderr := stderrStr(d)
+	if !strings.Contains(stderr, "syntax errors") {
+		t.Errorf("expected syntax error warning in stderr, got %q", stderr)
+	}
+}
+
 func TestRunConfigWith_ScaffoldContainsDefaults(t *testing.T) {
 	d := testDeps(t)
 	cfgDir := filepath.Join(t.TempDir(), "nux")

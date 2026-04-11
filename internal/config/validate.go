@@ -1,6 +1,11 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
 
 var validLayouts = map[string]bool{
 	"even-horizontal": true,
@@ -34,7 +39,14 @@ func Validate(cfg *ProjectConfig) []error {
 		errs = append(errs, fmt.Errorf("command and windows are mutually exclusive"))
 	}
 
-	for i, w := range cfg.Windows {
+	errs = append(errs, validateWindows(cfg.Windows)...)
+
+	return errs
+}
+
+func validateWindows(windows []Window) []error {
+	var errs []error
+	for i, w := range windows {
 		label := fmt.Sprintf("windows[%d]", i)
 
 		if w.Name == "" {
@@ -49,8 +61,57 @@ func Validate(cfg *ProjectConfig) []error {
 			errs = append(errs, layoutError(label, w.Layout))
 		}
 	}
-
 	return errs
+}
+
+var validPickers = map[string]bool{
+	"fzf": true,
+	"gum": true,
+	"":    true,
+}
+
+func ValidateGlobal(cfg *GlobalConfig) (errs []error, warnings []error) {
+	if !validPickers[cfg.Picker] {
+		errs = append(errs, fmt.Errorf("picker: invalid value %q (must be fzf or gum)", cfg.Picker))
+	}
+
+	for i, d := range cfg.ProjectDirs {
+		if strings.TrimSpace(d) == "" {
+			errs = append(errs, fmt.Errorf("project_dirs[%d]: empty path", i))
+		}
+	}
+
+	if cfg.DefaultSession != nil {
+		for _, e := range validateWindows(cfg.DefaultSession.Windows) {
+			errs = append(errs, fmt.Errorf("default_session.%w", e))
+		}
+	}
+
+	for name, members := range cfg.Groups {
+		if len(members) == 0 {
+			warnings = append(warnings, fmt.Errorf("group %q is empty", name))
+		}
+	}
+
+	for i, d := range cfg.ProjectDirs {
+		expanded := expandHome(d)
+		if _, err := os.Stat(expanded); os.IsNotExist(err) {
+			warnings = append(warnings, fmt.Errorf("project_dirs[%d]: directory does not exist: %s", i, d))
+		}
+	}
+
+	return errs, warnings
+}
+
+func expandHome(path string) string {
+	if !strings.HasPrefix(path, "~") {
+		return path
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	return filepath.Join(home, path[1:])
 }
 
 type ValidationResult struct {

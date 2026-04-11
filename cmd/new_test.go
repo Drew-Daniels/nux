@@ -58,6 +58,20 @@ func TestRunNewWith_NoEditorHint(t *testing.T) {
 	}
 }
 
+func TestRunNewWith_PostSaveValidation(t *testing.T) {
+	d := testDeps(t)
+	d.openEditor = func(path string) error { return nil }
+
+	if err := runNewWith(d, []string{"blog"}); err != nil {
+		t.Fatalf("runNewWith: %v", err)
+	}
+
+	out := stdoutStr(d)
+	if !strings.Contains(out, "Config valid") {
+		t.Errorf("expected 'Config valid' in output, got %q", out)
+	}
+}
+
 func TestRunNewWith_AlreadyExists(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{Command: "vim"})

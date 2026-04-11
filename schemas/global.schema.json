@@ -130,15 +130,25 @@
           "description": "Working directory override. Relative paths resolve against project root."
         },
         "layout": {
-          "type": "string",
-          "enum": [
-            "even-horizontal",
-            "even-vertical",
-            "main-horizontal",
-            "main-vertical",
-            "tiled"
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "even-horizontal",
+                "even-vertical",
+                "main-horizontal",
+                "main-vertical",
+                "tiled"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{4},",
+              "description": "Custom tmux layout string."
+            }
           ],
-          "description": "Tmux pane layout. Also accepts custom tmux layout strings."
+          "type": "string",
+          "description": "Tmux pane layout. Named layouts or custom tmux layout strings."
         },
         "env": {
           "additionalProperties": {
@@ -152,13 +162,15 @@
             "$ref": "#/$defs/Pane"
           },
           "type": "array",
+          "minItems": 1,
           "description": "Pane definitions. Every window must have at least one pane."
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
-        "name"
+        "name",
+        "panes"
       ]
     }
   }

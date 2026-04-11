@@ -28,6 +28,10 @@ The generated scaffold contains all available settings with sensible defaults. O
 
 1. If `$EDITOR` is set, the file is opened in your editor. Otherwise nux prints a hint.
 
+**After saving:**
+
+When the editor closes, nux re-loads and validates the config. Errors are printed as `[error]`, warnings as `[warn]`, and a clean config prints `Config valid.` If the YAML is unparseable, a syntax error warning is shown instead.
+
 ## Generated scaffold
 
 The scaffold includes a schema modeline and all global options:

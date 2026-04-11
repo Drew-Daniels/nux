@@ -56,20 +56,42 @@ func runConfig(_ *cobra.Command, _ []string) error {
 func runConfigWith(d *deps, cfgDir string) error {
 	cfgPath := filepath.Join(cfgDir, "config.yaml")
 
-	if _, err := d.checkStat(cfgPath); err == nil {
-		return d.openEditor(cfgPath)
+	if _, err := d.checkStat(cfgPath); err != nil {
+		projectsDir := filepath.Join(cfgDir, "projects")
+		if err := os.MkdirAll(projectsDir, 0o755); err != nil {
+			return fmt.Errorf("creating config directory: %w", err)
+		}
+
+		if err := os.WriteFile(cfgPath, config.ScaffoldGlobalConfig(), 0o600); err != nil {
+			return fmt.Errorf("writing config: %w", err)
+		}
+
+		_, _ = fmt.Fprintf(d.stdout, "Created %s\n", cfgPath)
 	}
 
-	projectsDir := filepath.Join(cfgDir, "projects")
-	if err := os.MkdirAll(projectsDir, 0o755); err != nil {
-		return fmt.Errorf("creating config directory: %w", err)
+	if err := d.openEditor(cfgPath); err != nil {
+		return err
 	}
 
-	if err := os.WriteFile(cfgPath, config.ScaffoldGlobalConfig(), 0o600); err != nil {
-		return fmt.Errorf("writing config: %w", err)
+	return validateGlobalAfterEdit(d, cfgPath)
+}
+
+func validateGlobalAfterEdit(d *deps, cfgPath string) error {
+	cfg, err := config.LoadGlobalFrom(cfgPath)
+	if err != nil {
+		_, _ = fmt.Fprintf(d.stderr, "warning: config has syntax errors: %v\n", err)
+		return nil
 	}
 
-	_, _ = fmt.Fprintf(d.stdout, "Created %s\n", cfgPath)
-
-	return d.openEditor(cfgPath)
+	errs, warnings := config.ValidateGlobal(cfg)
+	for _, e := range errs {
+		_, _ = fmt.Fprintf(d.stderr, "  [error] %v\n", e)
+	}
+	for _, w := range warnings {
+		_, _ = fmt.Fprintf(d.stdout, "  [warn]  %v\n", w)
+	}
+	if len(errs) == 0 {
+		_, _ = fmt.Fprintln(d.stdout, "Config valid.")
+	}
+	return nil
 }

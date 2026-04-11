@@ -46,7 +46,11 @@ func runNewWith(d *deps, args []string) error {
 	}
 	_, _ = fmt.Fprintf(d.stdout, "Created %s\n", path)
 
-	return d.openEditor(path)
+	if err := d.openEditor(path); err != nil {
+		return err
+	}
+
+	return validateProjectAfterEdit(d, name)
 }
 
 func openInEditor(d *deps, path string) error {

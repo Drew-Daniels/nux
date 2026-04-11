@@ -103,13 +103,48 @@ type ProjectConfig struct {
 	Windows  []Window          `yaml:"windows" json:"windows,omitempty" jsonschema:"description=Window definitions. Mutually exclusive with command."`
 }
 
+// ProjectConfig.JSONSchemaExtend adds if/then constraints for the mutual
+// exclusivity of command and windows.
+func (ProjectConfig) JSONSchemaExtend(s *jsonschema.Schema) {
+	hasCommand := jsonschema.NewProperties()
+	hasCommand.Set("command", &jsonschema.Schema{MinLength: newUint64(1)})
+
+	hasWindows := jsonschema.NewProperties()
+	hasWindows.Set("windows", &jsonschema.Schema{MinItems: newUint64(1)})
+
+	s.AllOf = []*jsonschema.Schema{
+		{
+			If:   &jsonschema.Schema{Properties: hasCommand, Required: []string{"command"}},
+			Then: &jsonschema.Schema{Not: &jsonschema.Schema{Required: []string{"windows"}}},
+		},
+		{
+			If:   &jsonschema.Schema{Properties: hasWindows, Required: []string{"windows"}},
+			Then: &jsonschema.Schema{Not: &jsonschema.Schema{Required: []string{"command"}}},
+		},
+	}
+}
+
+func newUint64(v uint64) *uint64 { return &v }
+
 // Window defines a tmux window inside a project session.
 type Window struct {
 	Name   string            `yaml:"name" json:"name" jsonschema:"required,description=Window name shown in the tmux status bar."`
 	Root   string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
-	Layout string            `yaml:"layout" json:"layout,omitempty" jsonschema:"enum=even-horizontal,enum=even-vertical,enum=main-horizontal,enum=main-vertical,enum=tiled,description=Tmux pane layout. Also accepts custom tmux layout strings."`
+	Layout string            `yaml:"layout" json:"layout,omitempty" jsonschema:"description=Tmux pane layout. Named layouts or custom tmux layout strings."`
 	Env    map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
-	Panes  []Pane            `yaml:"panes" json:"panes,omitempty" jsonschema:"description=Pane definitions. Every window must have at least one pane."`
+	Panes  []Pane            `yaml:"panes" json:"panes" jsonschema:"required,minItems=1,description=Pane definitions. Every window must have at least one pane."`
+}
+
+// Window.JSONSchemaExtend replaces the layout enum with a oneOf that accepts
+// both named layouts and custom tmux layout strings (hex dimension prefix).
+func (Window) JSONSchemaExtend(s *jsonschema.Schema) {
+	if layout, ok := s.Properties.Get("layout"); ok {
+		layout.Enum = nil
+		layout.OneOf = []*jsonschema.Schema{
+			{Type: "string", Enum: []any{"even-horizontal", "even-vertical", "main-horizontal", "main-vertical", "tiled"}},
+			{Type: "string", Pattern: `^[0-9a-f]{4},`, Description: "Custom tmux layout string."},
+		}
+	}
 }
 
 // UnmarshalYAML rejects the removed window-level command field with an
