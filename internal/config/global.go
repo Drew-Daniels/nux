@@ -39,7 +39,7 @@ func LoadGlobal() (*GlobalConfig, error) {
 
 func GlobalDefaults() *GlobalConfig {
 	return &GlobalConfig{
-		ProjectsDir:  "~/projects",
+		ProjectDirs:  StringOrList{"~/projects"},
 		Picker:       "fzf",
 		PickerOnBare: false,
 		Zoxide:       false,
@@ -51,8 +51,9 @@ const GlobalSchemaModeline = "# yaml-language-server: $schema=https://raw.github
 func ScaffoldGlobalConfig() []byte {
 	return []byte(GlobalSchemaModeline + `# nux global configuration
 
-# Base directory for project discovery (supports ~ expansion).
-projects_dir: ~/projects
+# Directories for project discovery (supports ~ expansion).
+# A single path or a list of paths.
+project_dirs: ~/projects
 
 # Fuzzy finder backend: fzf or gum.
 picker: fzf

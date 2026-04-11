@@ -32,7 +32,7 @@ type options struct {
 	force       bool
 	deleteForce bool
 	configDir   string
-	projectsDir string
+	projectDirs string
 	editorFunc  func() string
 }
 
@@ -134,7 +134,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "print tmux commands without executing (still queries tmux for session state)")
 	rootCmd.Flags().BoolVar(&opts.force, "force", false, "override nested session prevention")
 	rootCmd.Flags().StringVar(&opts.configDir, "config-dir", "", "override config directory path (global config and project configs)")
-	rootCmd.Flags().StringVar(&opts.projectsDir, "projects-dir", "", "override projects directory path")
+	rootCmd.Flags().StringVar(&opts.projectDirs, "project-dirs", "", "override project directories path")
 
 	restartCmd.Flags().AddFlag(rootCmd.Flag("no-attach"))
 	restartCmd.Flags().StringArrayVar(&opts.vars, "var", nil, "override a custom variable (key=value, repeatable)")
@@ -157,8 +157,8 @@ func setup() (*deps, error) {
 	if err != nil {
 		return nil, fmt.Errorf("loading global config: %w", err)
 	}
-	if opts.projectsDir != "" {
-		global.ProjectsDir = opts.projectsDir
+	if opts.projectDirs != "" {
+		global.ProjectDirs = config.StringOrList{opts.projectDirs}
 	}
 
 	client := tmux.NewRealClient()

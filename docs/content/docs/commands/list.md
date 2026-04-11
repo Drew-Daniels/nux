@@ -24,7 +24,7 @@ Lists all projects that have a config file under `~/.config/nux/projects/`, alon
 | **CONFIG** | `project` (all listed entries come from config files) |
 | **ROOT** | The `root` value from the project config, if set |
 
-Only projects with explicit config files appear here. Convention-based projects (discovered via `projects_dir` or zoxide) are not included unless they also have a config file.
+Only projects with explicit config files appear here. Convention-based projects (discovered via `project_dirs` or zoxide) are not included unless they also have a config file.
 
 ## Examples
 

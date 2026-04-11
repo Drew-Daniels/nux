@@ -99,11 +99,12 @@ func runDoctorChecks(d *deps) bool {
 		_, _ = fmt.Fprintf(out, "  [ok]      config directory (%s)\n", d.projectCfgDir)
 	}
 
-	projectsDir := resolver.ResolveRoot(global.ProjectsDir, "")
-	if _, err := d.checkStat(projectsDir); err != nil {
-		_, _ = fmt.Fprintf(out, "  [warn]    projects directory missing: %s\n", projectsDir)
-	} else {
-		_, _ = fmt.Fprintf(out, "  [ok]      projects directory (%s)\n", projectsDir)
+	for _, dir := range resolver.ResolveRoots(global.ProjectDirs) {
+		if _, err := d.checkStat(dir); err != nil {
+			_, _ = fmt.Fprintf(out, "  [warn]    projects directory missing: %s\n", dir)
+		} else {
+			_, _ = fmt.Fprintf(out, "  [ok]      projects directory (%s)\n", dir)
+		}
 	}
 
 	results, err := config.ValidateAllWith(d.store)

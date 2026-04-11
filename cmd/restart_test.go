@@ -14,7 +14,7 @@ func TestRunRestartWith_VarOverrides(t *testing.T) {
 	// No vars in file so Resolve leaves {{greeting}} in Command; applyVarOverrides
 	// merges CLI vars before RestartSession builds.
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Command: "echo {{greeting}}",
 	})
 
@@ -41,7 +41,7 @@ func TestRunRestartWith_FullSession(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
@@ -63,7 +63,7 @@ func TestRunRestartWith_SingleWindow(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
@@ -101,7 +101,7 @@ func TestRunRestartWith_FullSession_Attaches(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
@@ -119,7 +119,7 @@ func TestRunRestartWith_FullSession_Attaches(t *testing.T) {
 func TestRunRestartWith_Window_Attaches(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
@@ -142,13 +142,13 @@ func TestRunRestartWith_GlobMulti(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("web-api", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
 	})
 	_ = d.store.Save("web-ui", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
@@ -175,11 +175,11 @@ func TestRunRestartWith_Group(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("alpha", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	_ = d.store.Save("bravo", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Windows: []config.Window{{Name: "editor", Panes: []config.Pane{{Command: "vim"}}}},
 	})
 	d.global.Groups = map[string][]string{"batch": {"alpha", "bravo"}}
@@ -204,13 +204,13 @@ func TestRunRestartWith_Glob_AttachesLast(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("web-api", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
 	})
 	_ = d.store.Save("web-ui", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 		},
@@ -235,7 +235,7 @@ func TestRunRestartWith_MultiWindow(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "vim"}}},
 			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},

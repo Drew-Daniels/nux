@@ -15,7 +15,7 @@ Prints the fully resolved config for one or more projects as YAML. The output re
 
 Targets support **glob patterns** (`+`), **`@group`** expansion, and multiple space-separated names. Multiple projects are written as a **YAML stream**: one document per project, separated by a `---` line.
 
-If a project has no config file (resolved via `projects_dir` or zoxide), nux prints the session name, resolved root, and config source without a `config` section.
+If a project has no config file (resolved via `project_dirs` path(s) or zoxide), nux prints the session name, resolved root, and config source without a `config` section.
 
 ## Flags
 

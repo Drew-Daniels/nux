@@ -18,7 +18,7 @@ groups:
     - dotfiles
 ```
 
-Each entry is a project name - the basename of a file in `~/.config/nux/projects/` (without `.yaml`), or any name resolvable via `projects_dir` or zoxide.
+Each entry is a project name - the basename of a file in `~/.config/nux/projects/` (without `.yaml`), or any name resolvable via `project_dirs` or zoxide.
 
 ## Usage
 

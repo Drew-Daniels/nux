@@ -40,19 +40,19 @@ These flags apply to the root `nux` command (starting/attaching sessions):
 | `--dry-run` | | Print the tmux commands nux would execute without actually running them. Still queries tmux for session state. |
 | `--force` | | Override the nested session guard. By default, nux refuses to start sessions from inside tmux. |
 | `--config-dir <path>` | | Override the config directory path. Both global config and project configs are read from this directory (default: `~/.config/nux`). |
-| `--projects-dir <path>` | | Override the `projects_dir` value from global config at runtime. |
+| `--project-dirs <path>` | | Replace the configured `project_dirs` list with this single path for this invocation (ignores multiple entries from global config). |
 | `--var key=value` | | Override a custom variable. Repeatable: `--var port=4000 --var env=staging`. |
 
 ## Auto-detect
 
-If you run bare `nux` from inside a directory under your configured `projects_dir`, nux automatically detects the project name from the directory and starts or attaches to that session. No arguments needed:
+If you run bare `nux` from inside a directory under any configured `project_dirs` path, nux automatically detects the project name from the directory and starts or attaches to that session. No arguments needed:
 
 ```sh
 cd ~/projects/blog
 nux
 ```
 
-If the current directory is not under `projects_dir` and no ad-hoc flags are set, nux falls through to the picker (if enabled) or prints help. When `--layout`, `--panes`, or `--run` are set, nux creates a session from the current directory regardless of `projects_dir`.
+If the current directory is not under any configured `project_dirs` path and no ad-hoc flags are set, nux falls through to the picker (if enabled) or prints help. When `--layout`, `--panes`, or `--run` are set, nux creates a session from the current directory regardless of `project_dirs`.
 
 ## Ad-hoc layouts
 
@@ -90,7 +90,7 @@ nux -x "just serve" --no-attach
 
 When combined with `--layout`/`--panes`, the command runs in **every** pane. Without a layout, it runs in the first pane only.
 
-When used without a project name, the session is derived from the current directory. This works from any directory - the directory does not need to be under `projects_dir`.
+When used without a project name, the session is derived from the current directory. This works from any directory - the directory does not need to be under any configured `project_dirs` path.
 
 `--var` has no effect when `--run` is used. nux prints a warning if both are specified.
 

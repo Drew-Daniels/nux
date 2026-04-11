@@ -23,7 +23,7 @@ Using `+` avoids **shell glob expansion**. You do not need to quote patterns; `n
 Patterns match against three sources:
 
 1. **Config files** - project names from `~/.config/nux/projects/*.yaml`
-2. **Directories** - directory names under `projects_dir`
+2. **Directories** - directory names under your configured `project_dirs` path(s)
 3. **Running sessions** - active tmux session names
 
 Duplicates are removed (e.g. a project with both a config file and a directory counts once). Zoxide-only entries are not included. Results are sorted alphabetically.

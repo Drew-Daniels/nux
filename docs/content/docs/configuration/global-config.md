@@ -21,11 +21,26 @@ If the config file does not exist, nux applies built-in defaults silently (no er
 
 ## Fields
 
-### `projects_dir` (string)
+### `project_dirs` (string or list of strings)
 
-Base directory used when discovering projects by convention. Tilde (`~`) is expanded. Default: `~/projects`.
+Directories used when discovering projects by convention. Tilde (`~`) is expanded. Default: `~/projects`.
 
-Override at runtime with `--projects-dir <path>`.
+A single string or a list of paths:
+
+```yaml
+# single directory (string shorthand)
+project_dirs: ~/projects
+
+# multiple directories
+project_dirs:
+  - ~/projects
+  - ~/work
+  - ~/docs
+```
+
+When multiple directories are listed, nux scans all of them for the picker, auto-detect, glob patterns, and directory-based resolution. The first entry is used as the base for relative `root` paths in project configs.
+
+Override at runtime with `--project-dirs <path>` (sets a single directory).
 
 ### `default_shell` (string)
 
@@ -65,7 +80,7 @@ Named session groups: each key is a group name, each value is a list of project 
 When no config file exists, nux uses:
 
 ```yaml
-projects_dir: ~/projects
+project_dirs: ~/projects
 picker: fzf
 picker_on_bare: false
 zoxide: false
@@ -78,7 +93,18 @@ zoxide: false
 Enough to get started — everything else uses built-in defaults:
 
 ```yaml
-projects_dir: ~/projects
+project_dirs: ~/projects
+```
+
+### Multiple project directories
+
+Scan several top-level directories for projects:
+
+```yaml
+project_dirs:
+  - ~/projects
+  - ~/work
+  - ~/docs
 ```
 
 ### Editor-centric workflow
@@ -86,7 +112,7 @@ projects_dir: ~/projects
 Two windows for every unconfigured project: an editor and a shell. Direnv hooks ensure `.envrc` files are loaded automatically.
 
 ```yaml
-projects_dir: ~/code
+project_dirs: ~/code
 
 default_shell: /bin/zsh
 
@@ -108,7 +134,7 @@ default_session:
 An editor window with two panes arranged side-by-side, plus a dedicated shell window:
 
 ```yaml
-projects_dir: ~/dev
+project_dirs: ~/dev
 
 default_session:
   windows:
@@ -124,10 +150,12 @@ default_session:
 
 ### Team with groups and zoxide
 
-Batch-start related projects and let zoxide find directories outside `projects_dir`:
+Batch-start related projects and let zoxide find directories outside `project_dirs`:
 
 ```yaml
-projects_dir: ~/work
+project_dirs:
+  - ~/work
+  - ~/oss
 
 default_session: nvim
 
@@ -148,7 +176,9 @@ groups:
 ### Full kitchen-sink
 
 ```yaml
-projects_dir: ~/code
+project_dirs:
+  - ~/code
+  - ~/docs
 
 default_shell: /bin/zsh
 

@@ -14,7 +14,7 @@ tmuxinator uses ERB (`<%= ... %>`). nux does not embed Ruby.
 
 ## Project root
 
-In tmuxinator, `root` is often explicit. In nux, if you omit `root`, it defaults to `<projects_dir>/<project_name>` (from global config and the project name).
+In tmuxinator, `root` is often explicit. In nux, if you omit `root`, it defaults to `<first_project_dirs>/<project_name>`: the first `project_dirs` entry when global config lists multiple paths, otherwise that single path (from global config and the project name).
 
 ## Hooks
 
@@ -89,7 +89,7 @@ windows:
 **Rough nux equivalent**
 
 ```yaml
-# root defaults to <projects_dir>/myapp if omitted
+# root defaults to <first_project_dirs>/myapp if omitted (first entry when project_dirs is a list)
 # put "export FOO=bar" in ~/.config/nux/config.yaml under pane_init
 # if you need the same prelude in every pane (tmuxinator pre_window)
 windows:

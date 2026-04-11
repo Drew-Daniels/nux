@@ -104,7 +104,7 @@ func TestRunConfigWith_ScaffoldContainsDefaults(t *testing.T) {
 	}
 
 	content := string(data)
-	for _, want := range []string{"projects_dir", "picker", "picker_on_bare", "zoxide"} {
+	for _, want := range []string{"project_dirs", "picker", "picker_on_bare", "zoxide"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("scaffold missing %q", want)
 		}

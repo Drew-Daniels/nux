@@ -54,6 +54,6 @@ Default sessions apply when all of these are true:
 
 1. You run `nux <name>` (or a name resolves through a group, pattern, or picker)
 2. No config file exists at `~/.config/nux/projects/<name>.yaml`
-3. The project directory is found via `projects_dir` or zoxide
+3. The project directory is found via `project_dirs` path(s) or zoxide
 
 If the project directory cannot be found at all, nux reports an error instead of creating a default session.

@@ -21,7 +21,7 @@ Checks performed, in order:
 4. **Zoxide binary** - checked only when `zoxide: true` in global config
 5. **Picker binary** - checked only when a picker is configured (fzf, gum)
 6. **Config directory** - verifies `~/.config/nux/projects/` exists
-7. **Projects directory** - verifies the `projects_dir` path exists
+7. **Projects directory** - verifies each configured `project_dirs` path exists
 8. **Project configs** - validates every project YAML file
 
 If any check fails, `doctor` exits with a non-zero status and prints "some checks failed."

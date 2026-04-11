@@ -113,7 +113,7 @@ func TestRunSessions_Single(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Command: "vim",
 	})
 
@@ -133,7 +133,7 @@ func TestRunSessions_SkipsExisting(t *testing.T) {
 	d.noAttach = true
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "vim"})
 
 	err := runSessions(d, []string{"blog"})
 	if err != nil {
@@ -150,7 +150,7 @@ func TestRunSessions_WithVarOverrides(t *testing.T) {
 	d.noAttach = true
 	d.vars = map[string]string{"greeting": "hello"}
 	_ = d.store.Save("api", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Command: "echo {{greeting}}",
 		Vars:    map[string]string{"greeting": "hi"},
 	})
@@ -172,7 +172,7 @@ func TestRunSessions_WithRunCommand(t *testing.T) {
 	d.run = "go test ./..."
 	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "go test ./..."})
 
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestRunSessions_RunCommand_SkipsProjectConfig(t *testing.T) {
 	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "fish"})
 
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
 			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
@@ -241,9 +241,9 @@ func TestRunSessions_RunCommand_SkipsProjectConfig(t *testing.T) {
 	}
 }
 
-func TestTryAutoDetect_InsideProjectsDir(t *testing.T) {
+func TestTryAutoDetect_InsideProjectDir(t *testing.T) {
 	d := testDeps(t)
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -258,7 +258,51 @@ func TestTryAutoDetect_InsideProjectsDir(t *testing.T) {
 	}
 }
 
-func TestTryAutoDetect_OutsideProjectsDir(t *testing.T) {
+func TestTryAutoDetect_SecondProjectDir(t *testing.T) {
+	d := testDeps(t)
+	secondDir := t.TempDir()
+	d.global.ProjectDirs = append(d.global.ProjectDirs, secondDir)
+	blogDir := filepath.Join(secondDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d.getwd = func() (string, error) { return blogDir, nil }
+
+	result, ok := tryAutoDetect(d)
+	if !ok {
+		t.Fatal("expected auto-detect to succeed in second projects dir")
+	}
+	if result.Name != "blog" {
+		t.Errorf("Name = %q, want blog", result.Name)
+	}
+}
+
+func TestCollectPickerItems_MultipleProjectDirs(t *testing.T) {
+	d := testDeps(t)
+	secondDir := t.TempDir()
+	d.global.ProjectDirs = append(d.global.ProjectDirs, secondDir)
+
+	if err := os.Mkdir(filepath.Join(d.global.ProjectDirs[0], "alpha"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(secondDir, "bravo"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	items := collectPickerItems(d)
+	seen := make(map[string]bool)
+	for _, item := range items {
+		seen[item] = true
+	}
+	if !seen["alpha"] {
+		t.Errorf("expected alpha from first dir, got %v", items)
+	}
+	if !seen["bravo"] {
+		t.Errorf("expected bravo from second dir, got %v", items)
+	}
+}
+
+func TestTryAutoDetect_OutsideProjectDir(t *testing.T) {
 	d := testDeps(t)
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
 
@@ -292,11 +336,11 @@ func TestCollectPickerItems(t *testing.T) {
 	}
 }
 
-func TestCollectPickerItems_IncludesProjectsDirEntries(t *testing.T) {
+func TestCollectPickerItems_IncludesProjectDirEntries(t *testing.T) {
 	d := testDeps(t)
 	_ = d.store.Save("blog", &config.ProjectConfig{Command: "a"})
 	for _, name := range []string{"blog", "notes", ".hidden"} {
-		if err := os.Mkdir(filepath.Join(d.global.ProjectsDir, name), 0o755); err != nil {
+		if err := os.Mkdir(filepath.Join(d.global.ProjectDirs[0], name), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -354,7 +398,7 @@ func TestCollectPickerItems_DedupesNormalizedNames(t *testing.T) {
 func TestRunBareNux_AutoDetect(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +417,7 @@ func TestRunBareNux_AutoDetect(t *testing.T) {
 
 func TestRunSessions_AttachesLast(t *testing.T) {
 	d := testDeps(t)
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "vim"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "vim"})
 
 	err := runSessions(d, []string{"blog"})
 	if err != nil {
@@ -391,7 +435,7 @@ func TestRunBareNux_WithRunCommand(t *testing.T) {
 	d.run = "echo hi"
 	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "echo hi"})
 
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +461,7 @@ func TestRunBareNux_WithRunCommand(t *testing.T) {
 	}
 }
 
-func TestRunBareNux_AdHocLayoutOutsideProjectsDir(t *testing.T) {
+func TestRunBareNux_AdHocLayoutOutsideProjectDir(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	d.layout = "tiled"
@@ -436,7 +480,7 @@ func TestRunBareNux_AdHocLayoutOutsideProjectsDir(t *testing.T) {
 	}
 }
 
-func TestRunBareNux_RunCommandOutsideProjectsDir(t *testing.T) {
+func TestRunBareNux_RunCommandOutsideProjectDir(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	d.run = "just dev"
@@ -463,7 +507,7 @@ func TestRunBareNux_RunCommandOutsideProjectsDir(t *testing.T) {
 	}
 }
 
-func TestRunBareNux_NoFlagsOutsideProjectsDir_ShowsHelp(t *testing.T) {
+func TestRunBareNux_NoFlagsOutsideProjectDir_ShowsHelp(t *testing.T) {
 	d := testDeps(t)
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
 
@@ -530,7 +574,7 @@ func TestRunBareNux_Picker(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
 
 	fp := &fakePicker{choice: "blog *"}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -555,7 +599,7 @@ func TestRunBareNux_Picker_StripsIndicator(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
 
 	fp := &fakePicker{choice: "blog *"}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -615,7 +659,7 @@ func TestRunBareNux_PickerDismissed(t *testing.T) {
 	d.noAttach = true
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
 
 	fp := &fakePicker{choice: ""}
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
@@ -636,7 +680,7 @@ func TestRunBareNux_PickerError(t *testing.T) {
 	d := testDeps(t)
 	d.global.PickerOnBare = true
 	d.getwd = func() (string, error) { return "/some/other/dir", nil }
-	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectsDir, Command: "a"})
+	_ = d.store.Save("blog", &config.ProjectConfig{Root: d.global.ProjectDirs[0], Command: "a"})
 
 	d.newPicker = func(_ string, _ io.Writer) (picker.Picker, error) {
 		return nil, fmt.Errorf("no picker binary")
@@ -650,7 +694,7 @@ func TestRunBareNux_PickerError(t *testing.T) {
 
 func TestRunBareNux_AutoDetect_Attaches(t *testing.T) {
 	d := testDeps(t)
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +718,7 @@ func TestRunSessions_VarWithRunWarning(t *testing.T) {
 	d.vars = map[string]string{"port": "8080"}
 	d.builder.SetAdHocLayout(&tmux.AdHocLayout{Command: "go test ./..."})
 
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -696,7 +740,7 @@ func TestRunSessions_BuildError(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.DefaultError = fmt.Errorf("session failed")
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Command: "vim",
 	})
 
@@ -723,7 +767,7 @@ func TestRunSessions_Subset_NewSession_UserOrder(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
 			{Name: "server", Panes: []config.Pane{{Command: "go run ."}}},
@@ -756,7 +800,7 @@ func TestRunSessions_Subset_Existing_SelectsWindow(t *testing.T) {
 	mock := d.client.(*tmux.MockClient)
 	mock.HasSessionReturn = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
 		},
@@ -787,7 +831,7 @@ func TestRunSessions_Subset_AdhocFlagsError(t *testing.T) {
 	d.noAttach = true
 	d.run = "fish"
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root: d.global.ProjectsDir,
+		Root: d.global.ProjectDirs[0],
 		Windows: []config.Window{
 			{Name: "editor", Panes: []config.Pane{{Command: "nvim"}}},
 		},
@@ -806,7 +850,7 @@ func TestRunSessions_Subset_CommandOnlyConfigError(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true
 	_ = d.store.Save("blog", &config.ProjectConfig{
-		Root:    d.global.ProjectsDir,
+		Root:    d.global.ProjectDirs[0],
 		Command: "vim",
 	})
 
@@ -821,7 +865,7 @@ func TestRunBareNux_AutoDetect_BuildError(t *testing.T) {
 	d.noAttach = true
 	mock := d.client.(*tmux.MockClient)
 	mock.DefaultError = fmt.Errorf("create failed")
-	blogDir := filepath.Join(d.global.ProjectsDir, "blog")
+	blogDir := filepath.Join(d.global.ProjectDirs[0], "blog")
 	if err := os.Mkdir(blogDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -113,7 +113,7 @@ Config files live in `~/.config/nux/` (XDG-aware):
 ### Global Config
 
 ```yaml
-projects_dir: ~/projects
+project_dirs: ~/projects
 default_shell: /opt/homebrew/bin/fish
 pane_init:
   - cls

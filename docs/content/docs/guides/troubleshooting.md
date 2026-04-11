@@ -62,7 +62,7 @@ The interactive picker requires two conditions:
 1. `picker_on_bare: true` in global config
 2. You run bare `nux` (no arguments) from outside a recognized project directory
 
-If you're inside `projects_dir`, nux auto-detects the project instead of showing the picker. Move to a directory outside `projects_dir` and try again.
+If you're inside any configured `project_dirs` path, nux auto-detects the project instead of showing the picker. Move to a directory outside those paths and try again.
 
 Also verify your picker binary is installed:
 
@@ -96,12 +96,12 @@ nux resolves project names in this order:
 
 1. Config file at `~/.config/nux/projects/<name>.yaml`
 2. Zoxide query (if enabled)
-3. Directory at `<projects_dir>/<name>`
+3. Directory at `<project_dirs>/<name>` for each configured `project_dirs` root (nux checks every entry)
 
 If none match, you get this error. Check:
 
 - The config filename matches (without `.yaml`)
-- The directory exists under `projects_dir`
+- The directory exists under any configured `project_dirs` path
 - Zoxide knows about the directory (`zoxide query <name>`)
 
 Run `nux doctor` for a full environment check.

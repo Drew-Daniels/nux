@@ -114,7 +114,7 @@ func (r *Resolver) resolveFromConfig(name string, cfg *config.ProjectConfig, cfg
 		return nil, fmt.Errorf("interpolation failed: %w", err)
 	}
 
-	root := resolveRootWith(cfg.Root, r.global.ProjectsDir, r.homeDir)
+	root := resolveRootWith(cfg.Root, r.global.FirstProjectDir(), r.homeDir)
 
 	return &Result{
 		Name:         config.NormalizeSessionName(name),
@@ -140,20 +140,20 @@ func (r *Resolver) resolveFromZoxide(name string) (*Result, error) {
 }
 
 func (r *Resolver) resolveFromDirectory(name string) (*Result, error) {
-	projectsDir := r.expandTilde(r.global.ProjectsDir)
-	candidate := filepath.Join(projectsDir, name)
-
-	info, err := r.checkDir(candidate)
-	if err != nil || !info.IsDir() {
-		return nil, fmt.Errorf("not a directory: %s", candidate)
+	for _, dir := range r.global.ProjectDirs {
+		candidate := filepath.Join(r.expandTilde(dir), name)
+		info, err := r.checkDir(candidate)
+		if err != nil || !info.IsDir() {
+			continue
+		}
+		return &Result{
+			Name:         config.NormalizeSessionName(name),
+			Config:       nil,
+			Root:         candidate,
+			ConfigSource: "directory",
+		}, nil
 	}
-
-	return &Result{
-		Name:         config.NormalizeSessionName(name),
-		Config:       nil,
-		Root:         candidate,
-		ConfigSource: "directory",
-	}, nil
+	return nil, fmt.Errorf("not a directory in any project_dirs: %s", name)
 }
 
 func (r *Resolver) ExpandGlob(pattern string, sessionNames []string) ([]string, error) {
@@ -166,7 +166,7 @@ func (r *Resolver) ExpandGlob(pattern string, sessionNames []string) ([]string, 
 	for _, p := range projects {
 		seen[p.Name] = true
 	}
-	for _, name := range r.listProjectsDirNames() {
+	for _, name := range r.listProjectDirNames() {
 		if !seen[name] {
 			projects = append(projects, config.ProjectInfo{Name: name})
 		}
@@ -175,19 +175,23 @@ func (r *Resolver) ExpandGlob(pattern string, sessionNames []string) ([]string, 
 	return ExpandGlobFrom(pattern, projects, sessionNames)
 }
 
-func (r *Resolver) listProjectsDirNames() []string {
-	dir := r.expandTilde(r.global.ProjectsDir)
-	if dir == "" {
-		return nil
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
+func (r *Resolver) listProjectDirNames() []string {
+	seen := make(map[string]bool)
 	var names []string
-	for _, e := range entries {
-		if e.IsDir() {
-			names = append(names, e.Name())
+	for _, dir := range r.global.ProjectDirs {
+		expanded := r.expandTilde(dir)
+		if expanded == "" {
+			continue
+		}
+		entries, err := os.ReadDir(expanded)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if e.IsDir() && !seen[e.Name()] {
+				seen[e.Name()] = true
+				names = append(names, e.Name())
+			}
 		}
 	}
 	return names
@@ -232,6 +236,15 @@ func (r *Resolver) ExpandGroup(groupName string) ([]string, error) {
 
 func ResolveRoot(root string, projectsDir string) string {
 	return resolveRootWith(root, projectsDir, os.UserHomeDir)
+}
+
+// ResolveRoots expands each dir with ~ and returns the absolute paths.
+func ResolveRoots(dirs config.StringOrList) []string {
+	out := make([]string, len(dirs))
+	for i, d := range dirs {
+		out[i] = ResolveRoot(d, "")
+	}
+	return out
 }
 
 func resolveRootWith(root string, projectsDir string, homeDir HomeDirFunc) string {

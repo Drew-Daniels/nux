@@ -10,7 +10,7 @@ When you run **`nux` with no arguments** from a directory that is not tied to a 
 The picker combines three sources into a single sorted list:
 
 - **Configured** projects (files in `~/.config/nux/projects/`)
-- **Directories** under `projects_dir` (top-level only, hidden directories excluded)
+- **Directories** under each `project_dirs` entry (top-level only, hidden directories excluded)
 - **Running** tmux sessions not covered by the above
 
 Projects that have a config file are marked with a `*` suffix so you can tell at a glance which entries have custom configs and which use the default session template:
@@ -55,9 +55,9 @@ If `picker_on_bare` is `false` (the default), running bare `nux` outside a proje
 
 ## Auto-detect behavior
 
-Before the picker activates, nux checks whether your current working directory is **inside** the configured `projects_dir`. If it is, nux auto-detects the project name from the directory and starts or attaches to that session directly - the picker is skipped entirely.
+Before the picker activates, nux checks whether your current working directory is **inside** any configured `project_dirs` directory. If it is, nux auto-detects the project name from the directory and starts or attaches to that session directly - the picker is skipped entirely.
 
-For example, if `projects_dir` is `~/projects` and you run `nux` from `~/projects/blog`, nux starts the `blog` session without showing the picker.
+For example, if `project_dirs` includes `~/projects` and you run `nux` from `~/projects/blog`, nux starts the `blog` session without showing the picker.
 
 ## When to use the picker
 

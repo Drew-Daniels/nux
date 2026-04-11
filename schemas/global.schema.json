@@ -46,9 +46,9 @@
           "$ref": "#/$defs/DefaultSession",
           "description": "Template used for projects without a config file. Accepts a layout string or full session definition."
         },
-        "projects_dir": {
-          "type": "string",
-          "description": "Base directory for project discovery. Supports ~ expansion."
+        "project_dirs": {
+          "$ref": "#/$defs/StringOrList",
+          "description": "Directories for project discovery. A single string or a list of paths. Supports ~ expansion."
         },
         "picker": {
           "type": "string",
@@ -102,6 +102,22 @@
         }
       ],
       "description": "Pane definition. A plain string is shorthand for {command: \u003cstring\u003e}."
+    },
+    "StringOrList": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "A single directory path."
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "A list of directory paths."
+        }
+      ],
+      "description": "Directories for project discovery. A single string or a list of paths. Supports ~ expansion."
     },
     "Window": {
       "properties": {

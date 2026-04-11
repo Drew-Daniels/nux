@@ -21,7 +21,7 @@ These tools build tmux sessions from declarative config files (YAML/JSON).
 | Batch start (multiple sessions) | `nux blog api docs` | one at a time | `tmuxp load a b` | one at a time |
 | Session groups | `nux @work` | no | no | no |
 | Pattern matching | `nux web+` | no | no | no |
-| Zero-config sessions | yes (`projects_dir`) | no | no | no |
+| Zero-config sessions | yes (`project_dirs`) | no | no | no |
 | Selective windows | `project:window` | no | no | `project:window` |
 | Zoxide integration | built-in | no | no | no |
 | Interactive picker | fzf / gum | no | no | no |
@@ -91,7 +91,7 @@ These tools focus on quickly creating and switching between sessions, rather tha
 
 **Zero runtime dependencies.** nux is a single static binary. tmuxinator requires Ruby; tmuxp requires Python. smug and sesh share this advantage as Go/Rust binaries.
 
-**Convention over configuration.** Any directory under `projects_dir` can become a session with no YAML. The config-driven alternatives require a config file for every project. sesh and tms also support configless sessions, but without the ability to define layouts when you need them.
+**Convention over configuration.** Any directory under a configured `project_dirs` path can become a session with no YAML. The config-driven alternatives require a config file for every project. sesh and tms also support configless sessions, but without the ability to define layouts when you need them.
 
 **Integrated discovery.** The interactive picker (fzf/gum), zoxide fallback, auto-detect from the current directory, and JSON schemas for editor IntelliSense mean nux adapts to how you navigate.
 

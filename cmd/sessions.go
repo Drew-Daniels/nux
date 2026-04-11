@@ -196,19 +196,19 @@ func expandArgs(d *deps, args []string) ([]sessionArg, error) {
 
 func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 	cwd, _ := d.getwd()
-	projectsDir := resolver.ResolveRoot(d.global.ProjectsDir, "")
-
-	rel, err := filepath.Rel(projectsDir, cwd)
-	if err != nil || strings.HasPrefix(rel, "..") {
-		return nil, false
+	for _, dir := range resolver.ResolveRoots(d.global.ProjectDirs) {
+		rel, err := filepath.Rel(dir, cwd)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			continue
+		}
+		name := strings.SplitN(rel, string(filepath.Separator), 2)[0]
+		result, err := d.resolver.Resolve(name)
+		if err != nil {
+			continue
+		}
+		return result, true
 	}
-
-	name := strings.SplitN(rel, string(filepath.Separator), 2)[0]
-	result, err := d.resolver.Resolve(name)
-	if err != nil {
-		return nil, false
-	}
-	return result, true
+	return nil, false
 }
 
 func hasAdHocFlags(d *deps) bool {
@@ -290,16 +290,17 @@ func collectPickerItems(d *deps) []string {
 		hasConfig[k] = true
 	}
 
-	projectsDir := resolver.ResolveRoot(d.global.ProjectsDir, "")
-	entries, _ := os.ReadDir(projectsDir)
-	for _, e := range entries {
-		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
-			continue
-		}
-		k := config.NormalizeSessionName(e.Name())
-		if !seen[k] {
-			seen[k] = true
-			names = append(names, e.Name())
+	for _, dir := range resolver.ResolveRoots(d.global.ProjectDirs) {
+		entries, _ := os.ReadDir(dir)
+		for _, e := range entries {
+			if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+				continue
+			}
+			k := config.NormalizeSessionName(e.Name())
+			if !seen[k] {
+				seen[k] = true
+				names = append(names, e.Name())
+			}
 		}
 	}
 

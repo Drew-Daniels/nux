@@ -186,7 +186,7 @@ func testResolver(t *testing.T, cfgs map[string]*config.ProjectConfig) *Resolver
 	projectsDir := t.TempDir()
 
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectsDir: projectsDir,
+		ProjectDirs: config.StringOrList{projectsDir},
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
 	r = r.WithDirChecker(func(path string) (os.FileInfo, error) {
@@ -260,7 +260,7 @@ func TestResolve_FromDirectory(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectsDir: projectsDir,
+		ProjectDirs: config.StringOrList{projectsDir},
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
 
@@ -276,6 +276,32 @@ func TestResolve_FromDirectory(t *testing.T) {
 	}
 	if result.Config != nil {
 		t.Error("Config should be nil for directory source")
+	}
+}
+
+func TestResolve_FromDirectory_MultipleProjectDirs(t *testing.T) {
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+	blogDir := filepath.Join(dir2, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	store := config.NewProjectStore(t.TempDir())
+	r := NewResolverWithStore(&config.GlobalConfig{
+		ProjectDirs: config.StringOrList{dir1, dir2},
+	}, store)
+	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
+
+	result, err := r.Resolve("blog")
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if result.ConfigSource != "directory" {
+		t.Errorf("ConfigSource = %q, want directory", result.ConfigSource)
+	}
+	if result.Root != blogDir {
+		t.Errorf("Root = %q, want %q", result.Root, blogDir)
 	}
 }
 
@@ -312,7 +338,7 @@ func TestResolve_ZoxideFallsThrough(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectsDir: projectsDir,
+		ProjectDirs: config.StringOrList{projectsDir},
 		Zoxide:      true,
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
@@ -346,7 +372,7 @@ func TestExpandGlob_Method(t *testing.T) {
 	}
 }
 
-func TestExpandGlob_MatchesProjectsDirDirectories(t *testing.T) {
+func TestExpandGlob_MatchesProjectDirDirectories(t *testing.T) {
 	projectsDir := t.TempDir()
 	for _, name := range []string{"interoperability-development-wiki", "interop-tools", "blog"} {
 		if err := os.Mkdir(filepath.Join(projectsDir, name), 0o755); err != nil {
@@ -355,7 +381,7 @@ func TestExpandGlob_MatchesProjectsDirDirectories(t *testing.T) {
 	}
 
 	store := config.NewProjectStore(t.TempDir())
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: projectsDir}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{projectsDir}}, store)
 
 	got, err := r.ExpandGlob("interop+", nil)
 	if err != nil {
@@ -381,7 +407,7 @@ func TestExpandGlob_DeduplicatesConfigAndDir(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("web-api", &config.ProjectConfig{Command: "a"})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: projectsDir}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{projectsDir}}, store)
 
 	got, err := r.ExpandGlob("web+", nil)
 	if err != nil {
@@ -395,11 +421,45 @@ func TestExpandGlob_DeduplicatesConfigAndDir(t *testing.T) {
 	}
 }
 
-func TestExpandGlob_EmptyProjectsDir(t *testing.T) {
+func TestExpandGlob_MultipleProjectDirs(t *testing.T) {
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+	for _, name := range []string{"web-api", "web-ui"} {
+		if err := os.Mkdir(filepath.Join(dir1, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir2, "web-docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Duplicate in dir2 should be deduplicated
+	if err := os.Mkdir(filepath.Join(dir2, "web-api"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	store := config.NewProjectStore(t.TempDir())
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{dir1, dir2}}, store)
+
+	got, err := r.ExpandGlob("web+", nil)
+	if err != nil {
+		t.Fatalf("ExpandGlob: %v", err)
+	}
+	want := []string{"web-api", "web-docs", "web-ui"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Errorf("got[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestExpandGlob_EmptyProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: ""}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{""}}, store)
 
 	got, err := r.ExpandGlob("alpha+", nil)
 	if err != nil {
@@ -410,11 +470,11 @@ func TestExpandGlob_EmptyProjectsDir(t *testing.T) {
 	}
 }
 
-func TestExpandGlob_MissingProjectsDir(t *testing.T) {
+func TestExpandGlob_MissingProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("alpha", &config.ProjectConfig{Command: "a"})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectsDir: "/nonexistent/dir"}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{"/nonexistent/dir"}}, store)
 
 	got, err := r.ExpandGlob("alpha+", nil)
 	if err != nil {

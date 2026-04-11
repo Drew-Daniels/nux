@@ -37,7 +37,7 @@ The scaffold includes a schema modeline and all global options:
 # nux global configuration
 
 # Base directory for project discovery (supports ~ expansion).
-projects_dir: ~/projects
+project_dirs: ~/projects
 
 # Fuzzy finder backend: fzf or gum.
 picker: fzf

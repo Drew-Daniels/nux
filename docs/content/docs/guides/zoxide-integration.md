@@ -27,10 +27,10 @@ When you pass a name to nux, resolution proceeds in this order:
 
 1. **Explicit config** - a project file matching the name under `~/.config/nux/projects/`
 2. **Zoxide** - `zoxide query <name>`, if enabled
-3. **Directory** - `<projects_dir>/<name>` as a direct path lookup
+3. **Directory** - `<project_dirs>/<name>` under each configured `project_dirs` root (direct path lookup)
 4. **Error** - `"project not found: <name>"`
 
-Zoxide is checked **before** directory scanning. This means a zoxide match takes priority over a directory that happens to exist under `projects_dir` but has no config file. An explicit config file always wins.
+Zoxide is checked **before** directory scanning. This means a zoxide match takes priority over a directory that happens to exist under any configured `project_dirs` path but has no config file. An explicit config file always wins.
 
 ## Limitations
 

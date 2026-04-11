@@ -11,19 +11,19 @@ This walkthrough assumes nux is installed and tmux 3.0+ is available. See [Insta
 Create `~/.config/nux/config.yaml` to configure defaults:
 
 ```yaml
-projects_dir: ~/projects
+project_dirs: ~/projects
 default_shell: /bin/zsh
 pane_init:
   - eval "$(direnv hook zsh)"
 default_session: dev
 ```
 
-- `projects_dir` - base directory for convention-based project discovery (default: `~/projects`)
+- `project_dirs` - base directory or list of directories for convention-based project discovery; a string or YAML list of strings (default: `~/projects`). When multiple paths are set, nux scans all of them; the first entry is the base for relative `root` in project configs.
 - `default_shell` - shell used for new panes (optional, tmux default if omitted)
 - `pane_init` - commands run in each pane before pane-specific commands (optional)
 - `default_session` - template for projects without a config file; a plain string sets the command for a single-pane session
 
-If you skip the global config entirely, nux uses built-in defaults (`projects_dir: ~/projects`, `picker: fzf`).
+If you skip the global config entirely, nux uses built-in defaults (`project_dirs: ~/projects`, `picker: fzf`).
 
 ## Convention over configuration
 
@@ -33,7 +33,7 @@ If `~/projects/blog` exists, you can start a session with no project file:
 nux blog
 ```
 
-nux resolves the directory under `projects_dir` and applies the `default_session` layout (or creates a bare session if no `default_session` is configured).
+nux resolves the directory under one of your `project_dirs` paths and applies the `default_session` layout (or creates a bare session if no `default_session` is configured).
 
 ## Auto-detect
 

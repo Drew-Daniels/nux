@@ -26,7 +26,7 @@ For example, a file named `my.cool-project.yaml` produces the session name `my_c
 
 ### `root` (string)
 
-Project root directory. Supports `~` expansion and `{{var}}` interpolation (see [Custom variables]({{< relref "custom-variables" >}})). If omitted, defaults to `<projects_dir>/<name>` from [global config]({{< relref "global-config" >}}).
+Project root directory. Supports `~` expansion and `{{var}}` interpolation (see [Custom variables]({{< relref "custom-variables" >}})). If relative, resolved against the first entry in `project_dirs` from [global config]({{< relref "global-config" >}}). If omitted, defaults to `<first_project_dirs>/<name>`.
 
 ### `command` (string)
 
@@ -114,4 +114,4 @@ For a single-command project, the simplest config is:
 command: nvim
 ```
 
-This creates one window with one pane running `nvim`, rooted at `<projects_dir>/<name>`.
+This creates one window with one pane running `nvim`, rooted at `<project_dirs>/<name>`.

@@ -59,4 +59,4 @@ nux del @deprecated --force
 ## Notes
 
 - If a session for the deleted project is still running, it continues until stopped. Use `nux stop <name>` first if you want to tear down the session.
-- After deletion, the project can still start via convention (directory under `projects_dir`) or zoxide, but without any custom config.
+- After deletion, the project can still start via convention (directory under any configured `project_dirs` path) or zoxide, but without any custom config.
