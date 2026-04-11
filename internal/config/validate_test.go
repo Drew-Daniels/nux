@@ -102,32 +102,6 @@ func TestValidate_MultipleErrors(t *testing.T) {
 	}
 }
 
-func TestValidate_InvalidPaneSplit(t *testing.T) {
-	cfg := &ProjectConfig{
-		Windows: []Window{
-			{Name: "editor", Panes: []Pane{{Command: "vim", Split: "diagonal"}}},
-		},
-	}
-	errs := Validate(cfg)
-	if len(errs) == 0 {
-		t.Fatal("expected error for invalid split direction")
-	}
-	assertContains(t, errs[0].Error(), "invalid split")
-}
-
-func TestValidate_ValidPaneSplits(t *testing.T) {
-	for _, dir := range []string{"", "horizontal", "vertical"} {
-		cfg := &ProjectConfig{
-			Windows: []Window{
-				{Name: "w", Panes: []Pane{{Split: dir}}},
-			},
-		}
-		if errs := Validate(cfg); len(errs) != 0 {
-			t.Errorf("split %q should be valid, got %v", dir, errs)
-		}
-	}
-}
-
 func TestValidate_CommandOnlyIsValid(t *testing.T) {
 	cfg := &ProjectConfig{
 		Root:    "~/projects/test",

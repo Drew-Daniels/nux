@@ -36,8 +36,7 @@ type NewWindowOpts struct {
 }
 
 type SplitWindowOpts struct {
-	Horizontal bool
-	Root       string
+	Root string
 }
 
 type SessionInfo struct {

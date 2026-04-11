@@ -90,7 +90,6 @@ func (w *Window) UnmarshalYAML(value *yaml.Node) error {
 type Pane struct {
 	Root    string `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override for this pane."`
 	Command string `yaml:"command" json:"command,omitempty" jsonschema:"description=Command to run in this pane."`
-	Split   string `yaml:"split" json:"split,omitempty" jsonschema:"enum=horizontal,enum=vertical,description=Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."`
 }
 
 func (Pane) JSONSchema() *jsonschema.Schema {
@@ -102,11 +101,6 @@ func (Pane) JSONSchema() *jsonschema.Schema {
 	objProps.Set("command", &jsonschema.Schema{
 		Type:        "string",
 		Description: "Command to run in this pane.",
-	})
-	objProps.Set("split", &jsonschema.Schema{
-		Type:        "string",
-		Enum:        []any{"horizontal", "vertical"},
-		Description: "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical.",
 	})
 	return &jsonschema.Schema{
 		OneOf: []*jsonschema.Schema{

@@ -110,12 +110,7 @@ func (c *RealClient) KillWindow(session, window string) error {
 }
 
 func (c *RealClient) SplitWindow(session, window string, opts SplitWindowOpts) error {
-	args := []string{"split-window", "-t", session + ":" + window}
-	if opts.Horizontal {
-		args = append(args, "-h")
-	} else {
-		args = append(args, "-v")
-	}
+	args := []string{"split-window", "-t", session + ":" + window, "-v"}
 	if opts.Root != "" {
 		args = append(args, "-c", opts.Root)
 	}

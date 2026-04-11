@@ -57,7 +57,6 @@ Each pane may be:
 |-------|-------------|
 | `root` | Working directory override for this pane. Relative to the window root. |
 | `command` | Command to run in this pane. |
-| `split` | Split direction: `horizontal` (side-by-side) or `vertical` (top-bottom). Default is `vertical`. Only applies to panes after the first. |
 
 ### `env` (map)
 
@@ -97,9 +96,8 @@ windows:
   - name: workers
     layout: even-vertical
     panes:
-      - command: npm run worker:email
-      - command: npm run worker:jobs
-        split: horizontal
+      - npm run worker:email
+      - npm run worker:jobs
 
   - name: db
     root: docker

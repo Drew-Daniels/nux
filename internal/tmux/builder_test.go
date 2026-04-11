@@ -754,51 +754,6 @@ func TestBuild_Windowed_PaneBaseIndex1(t *testing.T) {
 	}
 }
 
-func TestBuild_PaneSplitDirection(t *testing.T) {
-	mock := &MockClient{}
-	builder := newTestBuilder(mock, nil)
-
-	cfg := &config.ProjectConfig{
-		Windows: []config.Window{
-			{
-				Name:   "editor",
-				Layout: "main-vertical",
-				Panes: []config.Pane{
-					{Command: "vim"},
-					{Command: "make watch", Split: "horizontal"},
-					{Command: "logs", Split: "vertical"},
-					{Command: "tests"},
-				},
-			},
-		},
-	}
-
-	err := builder.Build("proj", cfg, "/tmp/proj")
-	if err != nil {
-		t.Fatalf("Build returned error: %v", err)
-	}
-
-	splits := callsFor(mock, "SplitWindow")
-	if len(splits) != 3 {
-		t.Fatalf("expected 3 SplitWindow calls, got %d", len(splits))
-	}
-
-	opts0 := splits[0].Opts.(SplitWindowOpts)
-	if !opts0.Horizontal {
-		t.Error("pane 1 (split: horizontal) should pass Horizontal: true")
-	}
-
-	opts1 := splits[1].Opts.(SplitWindowOpts)
-	if opts1.Horizontal {
-		t.Error("pane 2 (split: vertical) should pass Horizontal: false")
-	}
-
-	opts2 := splits[2].Opts.(SplitWindowOpts)
-	if opts2.Horizontal {
-		t.Error("pane 3 (no split) should default to Horizontal: false")
-	}
-}
-
 func TestBuild_WindowEnv(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)

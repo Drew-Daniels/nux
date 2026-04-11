@@ -37,7 +37,7 @@ Commands run in **every** pane of **every** session before any pane-specific com
 
 ### `default_session`
 
-Template used when a project has no config file (see [Default session]({{< relref "default-session" >}}), including **Panes and `split`**).
+Template used when a project has no config file (see [Default session]({{< relref "default-session" >}})).
 
 - **String shorthand:** a single value treated as a one-window command (for example `nvim`).
 - **Object form:** an object with optional `command` and a `windows` array (same window shape as [project config]({{< relref "project-config" >}}), not a full project file).
@@ -103,9 +103,9 @@ default_session:
         - ""
 ```
 
-### Split-pane development
+### Multi-pane development
 
-A tiled editor window with a side terminal, plus a dedicated shell window:
+An editor window with two panes arranged side-by-side, plus a dedicated shell window:
 
 ```yaml
 projects_dir: ~/dev
@@ -116,8 +116,7 @@ default_session:
       layout: main-vertical
       panes:
         - nvim
-        - command: ""
-          split: horizontal
+        - ""
     - name: shell
       panes:
         - ""

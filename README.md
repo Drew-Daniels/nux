@@ -17,7 +17,6 @@ nux manages tmux sessions declaratively through project configs, with a unified 
 - **Interactive picker** - fuzzy finder integration (fzf/gum) for session selection
 - **Zoxide integration** - smart directory discovery as a resolver fallback
 - **Selective windows** - start or restart only the windows you name (`nux blog:editor`, `nux blog:editor,server`, `nux restart blog:editor`)
-- **Pane split direction** - control whether panes split horizontally or vertically per-pane in config
 - **Config inspector** - `nux show` prints the fully resolved config after interpolation and variable expansion (multiple targets, globs, and groups supported)
 - **Dry-run mode** - preview tmux commands without executing
 - **JSON schemas** - editor intellisense for config files via yaml-language-server

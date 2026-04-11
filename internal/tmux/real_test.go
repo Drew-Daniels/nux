@@ -127,7 +127,7 @@ func TestKillWindow_DryRun(t *testing.T) {
 	}
 }
 
-func TestSplitWindow_DryRun_Vertical(t *testing.T) {
+func TestSplitWindow_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SplitWindow("sess", "editor", SplitWindowOpts{Root: "/tmp"})
 	out := buf.String()
@@ -135,16 +135,16 @@ func TestSplitWindow_DryRun_Vertical(t *testing.T) {
 		t.Errorf("got %q", out)
 	}
 	if !strings.Contains(out, "-v") {
-		t.Errorf("expected -v for vertical, got %q", out)
+		t.Errorf("expected -v, got %q", out)
 	}
 }
 
-func TestSplitWindow_DryRun_Horizontal(t *testing.T) {
+func TestSplitWindow_DryRun_NoRoot(t *testing.T) {
 	c, buf := dryClient()
-	_ = c.SplitWindow("sess", "editor", SplitWindowOpts{Horizontal: true})
+	_ = c.SplitWindow("sess", "editor", SplitWindowOpts{})
 	out := buf.String()
-	if !strings.Contains(out, "-h") {
-		t.Errorf("expected -h for horizontal, got %q", out)
+	if !strings.Contains(out, "-v") {
+		t.Errorf("expected -v, got %q", out)
 	}
 	if strings.Contains(out, "-c") {
 		t.Error("should not include -c when Root is empty")

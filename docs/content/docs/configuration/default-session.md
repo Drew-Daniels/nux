@@ -38,27 +38,11 @@ default_session:
 
 This creates a two-window session for any project that lacks its own config file.
 
-## Panes and `split`
+## Panes and layout
 
-Multi-pane windows are defined with a window-level `panes` list. The field reference and examples are in [Project config]({{< relref "project-config" >}}) under **Panes**. Two details usually cause confusion:
+Multi-pane windows are defined with a window-level `panes` list. The first pane occupies the initial window; each additional entry creates a new pane via `split-window`. Use `layout` on the window to rearrange all panes after they are created (for example `tiled`, `even-vertical`, or a custom tmux layout string).
 
-### `split` only applies from the second pane onward
-
-The **first** pane in the list is the window’s initial pane. nux does not run `split-window` for it, so a `split` field on **only** the first entry has no effect. For each **additional** pane, nux splits from the current layout and `split` chooses the direction:
-
-| Value | tmux flag | Result |
-|-------|-----------|--------|
-| `vertical` (default) | `split-window -v` | New pane **below** the active one (stacked) |
-| `horizontal` | `split-window -h` | New pane **beside** the active one (side by side) |
-
-### `layout` vs per-pane `split`
-
-- **`split`** on a pane: how **that** pane is created when it is added (one split at a time).
-- **`layout`** on the window: optional **tmux layout** applied **after** all panes exist (for example `tiled`, `even-vertical`, or a custom layout string). You can use both; think of splits as building blocks and `layout` as a final arrangement pass.
-
-### Same rules everywhere
-
-`default_session` windows use the same pane logic as project configs. If anything is unclear, read the **Panes** table and example under [Project config]({{< relref "project-config" >}}).
+`default_session` windows follow the same rules as project configs. See the **Panes** table under [Project config]({{< relref "project-config" >}}) for the full field reference.
 
 ## Interaction with `pane_init`
 

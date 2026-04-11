@@ -340,8 +340,7 @@ func (b *Builder) startWindow(session string, w config.Window, projectRoot strin
 		if i > 0 {
 			pr := windowRoot(p.Root, wr)
 			errs = append(errs, b.client.SplitWindow(session, w.Name, SplitWindowOpts{
-				Root:       pr,
-				Horizontal: p.Split == "horizontal",
+				Root: pr,
 			}))
 		}
 

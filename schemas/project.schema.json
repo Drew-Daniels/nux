@@ -18,14 +18,6 @@
             "command": {
               "type": "string",
               "description": "Command to run in this pane."
-            },
-            "split": {
-              "type": "string",
-              "enum": [
-                "horizontal",
-                "vertical"
-              ],
-              "description": "Split direction when creating this pane. Horizontal splits side-by-side; vertical splits top-bottom. Default is vertical."
             }
           },
           "additionalProperties": false,

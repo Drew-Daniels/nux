@@ -93,7 +93,6 @@ func TestPane_UnmarshalYAML_String(t *testing.T) {
 func TestPane_UnmarshalYAML_Object(t *testing.T) {
 	input := `
 command: make watch
-split: horizontal
 root: src
 `
 	var p Pane
@@ -102,9 +101,6 @@ root: src
 	}
 	if p.Command != "make watch" {
 		t.Errorf("Command = %q, want 'make watch'", p.Command)
-	}
-	if p.Split != "horizontal" {
-		t.Errorf("Split = %q, want horizontal", p.Split)
 	}
 	if p.Root != "src" {
 		t.Errorf("Root = %q, want src", p.Root)
@@ -123,7 +119,7 @@ windows:
     panes:
       - vim
       - command: make watch
-        split: horizontal
+        root: backend
 `
 	var cfg ProjectConfig
 	if err := yaml.Unmarshal([]byte(input), &cfg); err != nil {
@@ -148,7 +144,7 @@ windows:
 	if w.Panes[0].Command != "vim" {
 		t.Errorf("pane 0 command = %q, want vim", w.Panes[0].Command)
 	}
-	if w.Panes[1].Split != "horizontal" {
-		t.Errorf("pane 1 split = %q, want horizontal", w.Panes[1].Split)
+	if w.Panes[1].Root != "backend" {
+		t.Errorf("pane 1 root = %q, want backend", w.Panes[1].Root)
 	}
 }

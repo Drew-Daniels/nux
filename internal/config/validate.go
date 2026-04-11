@@ -10,12 +10,6 @@ var validLayouts = map[string]bool{
 	"tiled":           true,
 }
 
-var validSplitDirs = map[string]bool{
-	"":           true,
-	"horizontal": true,
-	"vertical":   true,
-}
-
 func IsValidLayout(layout string) bool {
 	if layout == "" {
 		return true
@@ -53,12 +47,6 @@ func Validate(cfg *ProjectConfig) []error {
 
 		if !IsValidLayout(w.Layout) {
 			errs = append(errs, layoutError(label, w.Layout))
-		}
-
-		for j, p := range w.Panes {
-			if !validSplitDirs[p.Split] {
-				errs = append(errs, fmt.Errorf("%s.panes[%d]: invalid split %q (must be horizontal or vertical)", label, j, p.Split))
-			}
 		}
 	}
 
