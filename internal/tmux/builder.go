@@ -117,7 +117,7 @@ func (b *Builder) buildBare(name, root string) error {
 
 	firstWindow := name + ":" + b.firstWindow()
 	var errs []error
-	errs = append(errs, b.sendPaneInit(firstWindow)...)
+	errs = append(errs, b.sendPaneInit(firstWindow, nil)...)
 	errs = append(errs, b.client.SendKeys(firstWindow, cmd))
 	return errors.Join(errs...)
 }
@@ -143,7 +143,7 @@ func (b *Builder) buildAdHoc(name, root string) error {
 	cmd := b.adHocCommand()
 	for i := 0; i < b.adHocLayout.Panes; i++ {
 		paneTarget := fmt.Sprintf("%s.%d", target, pb+i)
-		errs = append(errs, b.sendPaneInit(paneTarget)...)
+		errs = append(errs, b.sendPaneInit(paneTarget, nil)...)
 		if cmd != "" {
 			errs = append(errs, b.client.SendKeys(paneTarget, cmd))
 		}
@@ -196,12 +196,12 @@ func (b *Builder) buildWindowList(name string, cfg *config.ProjectConfig, root s
 	var errs []error
 
 	errs = append(errs, b.applySessionSettings(name, cfg, firstTarget)...)
-	errs = append(errs, b.startWindow(name, firstWin, root))
+	errs = append(errs, b.startWindow(name, firstWin, root, cfg.PaneInit))
 
 	for _, w := range windows[1:] {
 		wr := windowRoot(w.Root, root)
 		errs = append(errs, b.client.NewWindow(name, NewWindowOpts{Name: w.Name, Root: wr}))
-		errs = append(errs, b.startWindow(name, w, root))
+		errs = append(errs, b.startWindow(name, w, root, cfg.PaneInit))
 	}
 
 	errs = append(errs, b.client.SelectWindow(name, firstWin.Name))
@@ -217,8 +217,12 @@ func (b *Builder) applySessionSettings(name string, cfg *config.ProjectConfig, f
 		errs = append(errs, b.client.SetEnv(name, k, v))
 	}
 
-	if b.global.DefaultShell != "" {
-		errs = append(errs, b.client.SetOption(name, "default-command", b.global.DefaultShell))
+	shell := cfg.DefaultShell
+	if shell == "" {
+		shell = b.global.DefaultShell
+	}
+	if shell != "" {
+		errs = append(errs, b.client.SetOption(name, "default-command", shell))
 	}
 
 	for _, cmd := range cfg.OnStart {
@@ -257,9 +261,12 @@ func (b *Builder) adHocCommand() string {
 	return ""
 }
 
-func (b *Builder) sendPaneInit(target string) []error {
+func (b *Builder) sendPaneInit(target string, projectPaneInit []string) []error {
 	var errs []error
 	for _, cmd := range b.global.PaneInit {
+		errs = append(errs, b.client.SendKeys(target, cmd))
+	}
+	for _, cmd := range projectPaneInit {
 		errs = append(errs, b.client.SendKeys(target, cmd))
 	}
 	return errs
@@ -286,7 +293,7 @@ func shellEscape(s string) string {
 	return strings.ReplaceAll(s, "'", `'\''`)
 }
 
-func (b *Builder) startWindow(session string, w config.Window, projectRoot string) error {
+func (b *Builder) startWindow(session string, w config.Window, projectRoot string, projectPaneInit []string) error {
 	target := session + ":" + w.Name
 	wr := windowRoot(w.Root, projectRoot)
 	pb := b.paneBase()
@@ -302,7 +309,7 @@ func (b *Builder) startWindow(session string, w config.Window, projectRoot strin
 			}))
 		}
 
-		errs = append(errs, b.sendPaneInit(paneTarget)...)
+		errs = append(errs, b.sendPaneInit(paneTarget, projectPaneInit)...)
 		errs = append(errs, b.sendWindowEnv(paneTarget, w.Env)...)
 
 		if p.Command != "" {
@@ -366,7 +373,7 @@ func (b *Builder) RestartWindow(session, windowName string, cfg *config.ProjectC
 		return fmt.Errorf("creating window %q: %w", windowName, err)
 	}
 
-	return b.startWindow(session, w, root)
+	return b.startWindow(session, w, root, cfg.PaneInit)
 }
 
 func findWindow(cfg *config.ProjectConfig, name string) (config.Window, bool) {

@@ -16,6 +16,7 @@ type ProjectStore interface {
 	Load(name string) (*ProjectConfig, string, error)
 	List() ([]ProjectInfo, error)
 	Save(name string, cfg *ProjectConfig) error
+	SaveRaw(name string, content []byte) error
 	Delete(name string) error
 	Path(name string) string
 }
@@ -79,15 +80,20 @@ func (s *DirProjectStore) List() ([]ProjectInfo, error) {
 }
 
 func (s *DirProjectStore) Save(name string, cfg *ProjectConfig) error {
-	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
-		return err
-	}
-
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 	content := append([]byte(ProjectSchemaModeline), data...)
+	return s.SaveRaw(name, content)
+}
+
+// SaveRaw writes a project file as-is (caller supplies full bytes, including
+// the schema modeline if desired). Used for hand-authored scaffolds.
+func (s *DirProjectStore) SaveRaw(name string, content []byte) error {
+	if err := os.MkdirAll(s.Dir, 0o755); err != nil {
+		return err
+	}
 	return os.WriteFile(s.Path(name), content, 0o600)
 }
 

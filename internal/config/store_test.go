@@ -4,7 +4,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestStore_Path(t *testing.T) {
@@ -126,6 +129,58 @@ func TestStore_Delete(t *testing.T) {
 	_, _, err := s.Load("deleteme")
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Errorf("expected file to be gone, got %v", err)
+	}
+}
+
+func TestNewProjectFileContents_UnmarshalAndValidate(t *testing.T) {
+	var cfg ProjectConfig
+	if err := yaml.Unmarshal(NewProjectFileContents(), &cfg); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if errs := Validate(&cfg); len(errs) > 0 {
+		t.Fatalf("validate: %v", errs)
+	}
+	if len(cfg.Windows) != 1 || cfg.Windows[0].Name != "editor" {
+		t.Fatalf("windows = %+v", cfg.Windows)
+	}
+	if len(cfg.Windows[0].Panes) != 1 || cfg.Windows[0].Panes[0].Command != "" {
+		t.Fatalf("panes = %+v", cfg.Windows[0].Panes)
+	}
+}
+
+func TestStore_SaveRaw_RoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	s := NewProjectStore(dir)
+	if err := s.SaveRaw("blog", NewProjectFileContents()); err != nil {
+		t.Fatalf("SaveRaw: %v", err)
+	}
+	cfg, _, err := s.Load("blog")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if len(cfg.Windows) != 1 || cfg.Windows[0].Name != "editor" {
+		t.Fatalf("loaded = %+v", cfg)
+	}
+}
+
+func TestStore_Save_OmitsEmptyOptionalYAMLKeys(t *testing.T) {
+	dir := t.TempDir()
+	s := NewProjectStore(dir)
+	cfg := &ProjectConfig{
+		Windows: []Window{{Name: "editor", Panes: []Pane{{Command: ""}}}},
+	}
+	if err := s.Save("x", cfg); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(s.Path("x"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	for _, key := range []string{"on_stop:", "on_ready:", "on_detach:", "on_start:", "env:", "vars:", "layout:"} {
+		if strings.Contains(content, key) {
+			t.Errorf("did not expect %q in marshaled file:\n%s", key, content)
+		}
 	}
 }
 

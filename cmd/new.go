@@ -35,13 +35,7 @@ func runNewWith(d *deps, args []string) error {
 		return fmt.Errorf("config already exists: %s", path)
 	}
 
-	cfg := &config.ProjectConfig{
-		Windows: []config.Window{
-			{Name: "editor", Panes: []config.Pane{{Command: ""}}},
-		},
-	}
-
-	if err := d.store.Save(name, cfg); err != nil {
+	if err := d.store.SaveRaw(name, config.NewProjectFileContents()); err != nil {
 		return fmt.Errorf("saving config: %w", err)
 	}
 	_, _ = fmt.Fprintf(d.stdout, "Created %s\n", path)

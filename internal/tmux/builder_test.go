@@ -189,6 +189,31 @@ func TestBuild_NilConfig_DefaultWindows(t *testing.T) {
 	assertCalled(t, mock, "SelectWindow")
 }
 
+func TestBuild_ProjectPaneInit_AfterGlobal(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{PaneInit: []string{"global-init"}}
+	builder := newTestBuilder(mock, global)
+	cfg := &config.ProjectConfig{
+		PaneInit: []string{"project-init"},
+		Windows:  []config.Window{{Name: "w", Panes: []config.Pane{{Command: "vim"}}}},
+	}
+	if err := builder.Build("proj", cfg, "/tmp/p"); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	var paneKeys []string
+	for _, c := range mock.Calls {
+		if c.Method != "SendKeys" || len(c.Args) < 2 {
+			continue
+		}
+		if strings.HasPrefix(c.Args[0], "proj:w.") {
+			paneKeys = append(paneKeys, c.Args[1])
+		}
+	}
+	if len(paneKeys) < 3 || paneKeys[0] != "global-init" || paneKeys[1] != "project-init" || paneKeys[2] != "vim" {
+		t.Fatalf("first pane SendKeys want [global-init project-init vim], got %v", paneKeys)
+	}
+}
+
 func TestBuild_NilConfig_NoDefaults(t *testing.T) {
 	mock := &MockClient{}
 	builder := newTestBuilder(mock, nil)
@@ -402,6 +427,49 @@ func TestBuild_DefaultShell(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected SetOption with /usr/bin/fish")
+	}
+}
+
+func TestBuild_ProjectDefaultShell_OverridesGlobal(t *testing.T) {
+	mock := &MockClient{}
+	global := &config.GlobalConfig{DefaultShell: "/usr/bin/fish"}
+	builder := newTestBuilder(mock, global)
+	cfg := &config.ProjectConfig{
+		DefaultShell: "/bin/bash",
+		Windows:      []config.Window{{Name: "main", Panes: []config.Pane{{Command: "echo"}}}},
+	}
+	if err := builder.Build("p", cfg, "/tmp"); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	found := false
+	for _, c := range callsFor(mock, "SetOption") {
+		if len(c.Args) >= 3 && c.Args[1] == "default-command" && c.Args[2] == "/bin/bash" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected project default_shell to override global (want /bin/bash)")
+	}
+}
+
+func TestBuild_ProjectDefaultShell_WhenGlobalUnset(t *testing.T) {
+	mock := &MockClient{}
+	builder := newTestBuilder(mock, &config.GlobalConfig{})
+	cfg := &config.ProjectConfig{
+		DefaultShell: "/usr/local/bin/fish",
+		Windows:      []config.Window{{Name: "main", Panes: []config.Pane{{Command: "echo"}}}},
+	}
+	if err := builder.Build("p", cfg, "/tmp"); err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	found := false
+	for _, c := range callsFor(mock, "SetOption") {
+		if len(c.Args) >= 3 && c.Args[2] == "/usr/local/bin/fish" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected SetOption with project default_shell when global is empty")
 	}
 }
 

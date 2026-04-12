@@ -9,14 +9,14 @@ import (
 
 // GlobalConfig holds top-level settings from ~/.config/nux/config.yaml.
 type GlobalConfig struct {
-	DefaultShell   string              `yaml:"default_shell" json:"default_shell,omitempty" jsonschema:"description=Shell to set as tmux default-command for new sessions."`
-	PaneInit       []string            `yaml:"pane_init" json:"pane_init,omitempty" jsonschema:"description=Commands run in every pane before pane-specific commands."`
-	DefaultSession *DefaultSession     `yaml:"default_session" json:"default_session,omitempty" jsonschema:"description=Template used for projects without a config file. Accepts a layout string or full session definition."`
-	ProjectDirs    StringOrList        `yaml:"project_dirs" json:"project_dirs,omitempty" jsonschema:"description=Directories for project discovery. A single string or a list of paths. Supports ~ expansion."`
-	Picker         string              `yaml:"picker" json:"picker,omitempty" jsonschema:"enum=fzf,enum=gum,description=Fuzzy finder backend for interactive session selection."`
-	PickerOnBare   bool                `yaml:"picker_on_bare" json:"picker_on_bare,omitempty" jsonschema:"description=Open picker when nux is run with no arguments outside a project directory."`
-	Zoxide         bool                `yaml:"zoxide" json:"zoxide,omitempty" jsonschema:"description=Use zoxide for directory discovery as a resolver fallback."`
-	Groups         map[string][]string `yaml:"groups" json:"groups,omitempty" jsonschema:"description=Named groups of projects for batch operations (e.g. nux @work)."`
+	DefaultShell   string              `yaml:"default_shell,omitempty" json:"default_shell,omitempty" jsonschema:"description=Shell to set as tmux default-command for new sessions."`
+	PaneInit       []string            `yaml:"pane_init,omitempty" json:"pane_init,omitempty" jsonschema:"description=Commands run in every pane before pane-specific commands."`
+	DefaultSession *DefaultSession     `yaml:"default_session,omitempty" json:"default_session,omitempty" jsonschema:"description=Template used for projects without a config file. Accepts a layout string or full session definition."`
+	ProjectDirs    StringOrList        `yaml:"project_dirs,omitempty" json:"project_dirs,omitempty" jsonschema:"description=Directories for project discovery. A single string or a list of paths. Supports ~ expansion."`
+	Picker         string              `yaml:"picker,omitempty" json:"picker,omitempty" jsonschema:"enum=fzf,enum=gum,description=Fuzzy finder backend for interactive session selection."`
+	PickerOnBare   bool                `yaml:"picker_on_bare,omitempty" json:"picker_on_bare,omitempty" jsonschema:"description=Open picker when nux is run with no arguments outside a project directory."`
+	Zoxide         bool                `yaml:"zoxide,omitempty" json:"zoxide,omitempty" jsonschema:"description=Use zoxide for directory discovery as a resolver fallback."`
+	Groups         map[string][]string `yaml:"groups,omitempty" json:"groups,omitempty" jsonschema:"description=Named groups of projects for batch operations (e.g. nux @work)."`
 }
 
 // StringOrList holds one or more strings. It unmarshals from either a single
@@ -64,7 +64,7 @@ func (StringOrList) JSONSchema() *jsonschema.Schema {
 
 // DefaultSession is the template applied to projects without a config file.
 type DefaultSession struct {
-	Windows []Window `yaml:"windows" json:"windows,omitempty" jsonschema:"description=Window definitions for the default session template."`
+	Windows []Window `yaml:"windows,omitempty" json:"windows,omitempty" jsonschema:"description=Window definitions for the default session template."`
 }
 
 // UnmarshalYAML rejects the removed string shorthand with an actionable message.
@@ -78,14 +78,16 @@ func (ds *DefaultSession) UnmarshalYAML(value *yaml.Node) error {
 
 // ProjectConfig represents a single project YAML file.
 type ProjectConfig struct {
-	Root     string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Project root directory. Supports ~ expansion and variable interpolation."`
-	OnStart  []string          `yaml:"on_start" json:"on_start,omitempty" jsonschema:"description=Commands sent to the first pane after the session is created."`
-	OnReady  []string          `yaml:"on_ready" json:"on_ready,omitempty" jsonschema:"description=Commands sent to the first pane once at the end of the initial session build."`
-	OnDetach []string          `yaml:"on_detach" json:"on_detach,omitempty" jsonschema:"description=Commands run each time a client detaches."`
-	OnStop   []string          `yaml:"on_stop" json:"on_stop,omitempty" jsonschema:"description=Commands run when the session is closed."`
-	Env      map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set for all panes via tmux set-environment."`
-	Vars     map[string]string `yaml:"vars" json:"vars,omitempty" jsonschema:"description=Custom variables for {{var}} interpolation in config values."`
-	Windows  []Window          `yaml:"windows" json:"windows" jsonschema:"required,minItems=1,description=Window definitions for the session."`
+	Root         string            `yaml:"root,omitempty" json:"root,omitempty" jsonschema:"description=Project root directory. Supports ~ expansion and variable interpolation."`
+	PaneInit     []string          `yaml:"pane_init,omitempty" json:"pane_init,omitempty" jsonschema:"description=Commands run in every pane of this project before the pane-specific command. Runs after global pane_init from ~/.config/nux/config.yaml."`
+	DefaultShell string            `yaml:"default_shell,omitempty" json:"default_shell,omitempty" jsonschema:"description=Shell for tmux default-command in this session. Overrides global default_shell when set."`
+	OnStart      []string          `yaml:"on_start,omitempty" json:"on_start,omitempty" jsonschema:"description=Commands sent to the first pane after the session is created."`
+	OnReady      []string          `yaml:"on_ready,omitempty" json:"on_ready,omitempty" jsonschema:"description=Commands sent to the first pane once at the end of the initial session build."`
+	OnDetach     []string          `yaml:"on_detach,omitempty" json:"on_detach,omitempty" jsonschema:"description=Commands run each time a client detaches."`
+	OnStop       []string          `yaml:"on_stop,omitempty" json:"on_stop,omitempty" jsonschema:"description=Commands run when the session is closed."`
+	Env          map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema:"description=Environment variables set for all panes via tmux set-environment."`
+	Vars         map[string]string `yaml:"vars,omitempty" json:"vars,omitempty" jsonschema:"description=Custom variables for {{var}} interpolation in config values."`
+	Windows      []Window          `yaml:"windows" json:"windows" jsonschema:"required,minItems=1,description=Window definitions for the session."`
 }
 
 // UnmarshalYAML rejects the removed command field with an actionable message.
@@ -107,9 +109,9 @@ func (pc *ProjectConfig) UnmarshalYAML(value *yaml.Node) error {
 // Window defines a tmux window inside a project session.
 type Window struct {
 	Name   string            `yaml:"name" json:"name" jsonschema:"required,description=Window name shown in the tmux status bar."`
-	Root   string            `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
-	Layout string            `yaml:"layout" json:"layout,omitempty" jsonschema:"description=Tmux pane layout. Named layouts or custom tmux layout strings."`
-	Env    map[string]string `yaml:"env" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
+	Root   string            `yaml:"root,omitempty" json:"root,omitempty" jsonschema:"description=Working directory override. Relative paths resolve against project root."`
+	Layout string            `yaml:"layout,omitempty" json:"layout,omitempty" jsonschema:"description=Tmux pane layout. Named layouts or custom tmux layout strings."`
+	Env    map[string]string `yaml:"env,omitempty" json:"env,omitempty" jsonschema:"description=Environment variables set in all panes of this window. Merged with project-level env; window values take precedence."`
 	Panes  []Pane            `yaml:"panes" json:"panes" jsonschema:"required,minItems=1,description=Pane definitions. Every window must have at least one pane."`
 }
 
@@ -144,8 +146,8 @@ func (w *Window) UnmarshalYAML(value *yaml.Node) error {
 
 // Pane defines a tmux pane inside a window.
 type Pane struct {
-	Root    string `yaml:"root" json:"root,omitempty" jsonschema:"description=Working directory override for this pane."`
-	Command string `yaml:"command" json:"command,omitempty" jsonschema:"description=Command to run in this pane."`
+	Root    string `yaml:"root,omitempty" json:"root,omitempty" jsonschema:"description=Working directory override for this pane."`
+	Command string `yaml:"command,omitempty" json:"command,omitempty" jsonschema:"description=Command to run in this pane."`
 }
 
 func (Pane) JSONSchema() *jsonschema.Schema {
@@ -179,6 +181,21 @@ func (p *Pane) UnmarshalYAML(value *yaml.Node) error {
 	}
 	type raw Pane
 	return value.Decode((*raw)(p))
+}
+
+// MarshalYAML encodes command-only panes as a scalar string (matching the
+// config shorthand). Empty panes become "". Panes with a root use a mapping.
+func (p Pane) MarshalYAML() (interface{}, error) {
+	if p.Root == "" {
+		if p.Command == "" {
+			return "", nil
+		}
+		return p.Command, nil
+	}
+	return struct {
+		Root    string `yaml:"root,omitempty"`
+		Command string `yaml:"command,omitempty"`
+	}{Root: p.Root, Command: p.Command}, nil
 }
 
 // ProjectInfo is a lightweight reference to a discovered project config.

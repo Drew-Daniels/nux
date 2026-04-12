@@ -28,6 +28,18 @@ For example, a file named `my.cool-project.yaml` produces the session name `my_c
 
 Project root directory. Supports `~` expansion and `{{var}}` interpolation (see [Custom variables]({{< relref "custom-variables" >}})). If relative, resolved against the first entry in `project_dirs` from [global config]({{< relref "global-config" >}}). If omitted, defaults to `<first_project_dirs>/<name>`.
 
+### `pane_init` (list of strings)
+
+Commands run in **every pane of this project** before that pane’s own `command`, via `tmux send-keys` (same mechanism as [global `pane_init`]({{< relref "global-config" >}})). Global `pane_init` entries run first; then project `pane_init`; then exports from session/window `env`; then the pane command.
+
+Use this for per-project setup that should not apply to all nux sessions (for example a login shell or clear screen before each pane command).
+
+### `default_shell` (string)
+
+Shell passed to tmux as `default-command` for **this session only** (same as [global `default_shell`]({{< relref "global-config" >}})). Supports `~` expansion and `{{var}}` interpolation.
+
+If set on the project, it **overrides** the global value. If omitted, nux uses the global `default_shell` when that is set; otherwise tmux keeps its own default.
+
 ### `windows` (list)
 
 Window definitions for the session. At least one window is required.

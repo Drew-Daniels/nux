@@ -72,12 +72,14 @@ func (ip *Interpolator) InterpolateVars(cfg *ProjectConfig) error {
 // or Pane - there is no compile-time check for missing fields.
 func (ip *Interpolator) applyTransform(cfg *ProjectConfig, fn func(string) string) error {
 	cfg.Root = fn(cfg.Root)
+	cfg.DefaultShell = fn(cfg.DefaultShell)
 
 	applySlice := func(ss []string) {
 		for i, s := range ss {
 			ss[i] = fn(s)
 		}
 	}
+	applySlice(cfg.PaneInit)
 	applySlice(cfg.OnStart)
 	applySlice(cfg.OnReady)
 	applySlice(cfg.OnDetach)

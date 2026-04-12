@@ -88,6 +88,48 @@ func TestPane_UnmarshalYAML_String(t *testing.T) {
 	}
 }
 
+func TestPane_MarshalYAML_CommandOnlyScalar(t *testing.T) {
+	p := Pane{Command: "vim"}
+	out, err := yaml.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(out) != "vim\n" {
+		t.Fatalf("want scalar vim, got %q", string(out))
+	}
+}
+
+func TestPane_MarshalYAML_WithRootAsMapping(t *testing.T) {
+	p := Pane{Root: "src", Command: "make"}
+	out, err := yaml.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var back Pane
+	if err := yaml.Unmarshal(out, &back); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if back != p {
+		t.Fatalf("round-trip = %+v, want %+v", back, p)
+	}
+}
+
+func TestProjectConfig_MarshalYAML_OmitsEmptyLayout(t *testing.T) {
+	cfg := ProjectConfig{
+		Windows: []Window{{
+			Name:  "main",
+			Panes: []Pane{{Command: "vim"}},
+		}},
+	}
+	out, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(out), "layout") {
+		t.Fatalf("did not expect layout key in:\n%s", out)
+	}
+}
+
 func TestPane_UnmarshalYAML_Object(t *testing.T) {
 	input := `
 command: make watch

@@ -47,7 +47,7 @@ Configure tmux itself via `tmux.conf` and standard environment (for example `TMU
 
 ## Pre-window commands
 
-tmuxinator `pre_window` runs before each pane command. The nux equivalent is **`pane_init`** in the **global** `~/.config/nux/config.yaml`, which applies to new panes according to your setup.
+tmuxinator `pre_window` runs before each pane command. In nux, use **`pane_init`** either in the **project** YAML (only that session) or in the **global** `~/.config/nux/config.yaml` (every session). When both are set, global `pane_init` runs first, then project `pane_init`, then each pane’s `command`.
 
 ## Attach behavior
 

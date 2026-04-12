@@ -32,6 +32,17 @@
           "type": "string",
           "description": "Project root directory. Supports ~ expansion and variable interpolation."
         },
+        "pane_init": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Commands run in every pane of this project before the pane-specific command. Runs after global pane_init from ~/.config/nux/config.yaml."
+        },
+        "default_shell": {
+          "type": "string",
+          "description": "Shell for tmux default-command in this session. Overrides global default_shell when set."
+        },
         "on_start": {
           "items": {
             "type": "string"

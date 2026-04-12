@@ -36,7 +36,9 @@ Multi-pane windows are defined with a window-level `panes` list. The first pane 
 
 ## Interaction with `pane_init`
 
-[`pane_init`]({{< relref "global-config" >}}) commands run in every pane of every session, including default sessions. They execute before each pane's command.
+[`pane_init`]({{< relref "global-config" >}}) in the global config runs in every pane of every session, including default sessions, before each pane’s command.
+
+Project-level [`pane_init`]({{< relref "project-config" >}}) applies only when a project YAML is loaded; default sessions (no project file) use global `pane_init` only.
 
 ## When default sessions are used
 
