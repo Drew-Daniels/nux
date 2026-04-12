@@ -3,12 +3,12 @@ package tmux
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/Drew-Daniels/nux/internal/config"
+	"github.com/Drew-Daniels/nux/internal/resolver"
 )
 
 // AdHocLayout holds overrides from CLI flags (--layout, --panes, --run).
@@ -388,12 +388,9 @@ func findWindow(cfg *config.ProjectConfig, name string) (config.Window, bool) {
 	return config.Window{}, false
 }
 
+// windowRoot resolves a window or pane working directory for tmux -c. Tilde
+// must be expanded here: tmux does not treat ~ as home in -c, which would
+// leave every pane in $HOME.
 func windowRoot(winRoot, projectRoot string) string {
-	if winRoot != "" {
-		if strings.HasPrefix(winRoot, "/") || strings.HasPrefix(winRoot, "~") {
-			return winRoot
-		}
-		return filepath.Join(projectRoot, winRoot)
-	}
-	return projectRoot
+	return resolver.ResolveRoot(winRoot, projectRoot)
 }

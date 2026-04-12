@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Drew-Daniels/nux/internal/config"
+	"github.com/Drew-Daniels/nux/internal/resolver"
 )
 
 func newTestBuilder(client *MockClient, global *config.GlobalConfig) *Builder {
@@ -1059,8 +1060,9 @@ func TestBuild_WindowRoot_Tilde(t *testing.T) {
 	if len(sessions) == 0 {
 		t.Fatal("expected NewSession call")
 	}
-	if sessions[0].Args[1] != "~/code/api" {
-		t.Errorf("expected root ~/code/api, got %s", sessions[0].Args[1])
+	want := resolver.ResolveRoot("~/code/api", "/home/user/proj")
+	if sessions[0].Args[1] != want {
+		t.Errorf("expected expanded tilde root %q, got %q", want, sessions[0].Args[1])
 	}
 }
 
@@ -1073,8 +1075,9 @@ func TestFindWindow_NilConfig(t *testing.T) {
 
 func TestWindowRoot_Empty(t *testing.T) {
 	got := windowRoot("", "/home/user/proj")
-	if got != "/home/user/proj" {
-		t.Errorf("windowRoot('', ...) = %q, want /home/user/proj", got)
+	want := resolver.ResolveRoot("", "/home/user/proj")
+	if got != want {
+		t.Errorf("windowRoot('', ...) = %q, want %q", got, want)
 	}
 }
 

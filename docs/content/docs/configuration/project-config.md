@@ -28,6 +28,8 @@ For example, a file named `my.cool-project.yaml` produces the session name `my_c
 
 Project root directory. Supports `~` expansion and `{{var}}` interpolation (see [Custom variables]({{< relref "custom-variables" >}})). If relative, resolved against the first entry in `project_dirs` from [global config]({{< relref "global-config" >}}). If omitted, defaults to `<first_project_dirs>/<name>`.
 
+nux expands `~` (here and on window/pane `root` values) before invoking tmux so pane working directories are correct; tmux itself does not treat `~` as home in `-c`.
+
 ### `pane_init` (list of strings)
 
 Commands run in **every pane of this project** before that pane’s own `command`, via `tmux send-keys` (same mechanism as [global `pane_init`]({{< relref "global-config" >}})). Global `pane_init` entries run first; then project `pane_init`; then exports from session/window `env`; then the pane command.
@@ -50,7 +52,7 @@ Each window object supports:
 |-------|----------|-------------|
 | `name` | yes | Window name shown in the tmux status bar |
 | `panes` | yes | List of panes (at least one). Use `panes: [""]` for a bare shell. |
-| `root` | no | Working directory for this window. Relative paths resolve against the project `root`. Absolute paths and `~` paths are used as-is. |
+| `root` | no | Working directory for this window. Relative paths resolve against the resolved project `root`. Paths with `~` are expanded to an absolute path before passing to tmux (tmux does not expand `~` in its `-c` directory flag). |
 | `layout` | no | `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, `tiled`, or a custom tmux layout string |
 | `env` | no | Environment variables for all panes in this window. Merged with project-level `env`; window values take precedence. See [Environment variables]({{< relref "environment-variables" >}}). |
 
@@ -63,7 +65,7 @@ Each pane may be:
 
 | Field | Description |
 |-------|-------------|
-| `root` | Working directory override for this pane. Relative to the window root. |
+| `root` | Working directory override for this pane. Relative paths resolve against the window’s working directory; `~` is expanded. |
 | `command` | Command to run in this pane. |
 
 ### `env` (map)
