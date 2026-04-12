@@ -337,13 +337,31 @@ func (b *Builder) StopSession(name string) error {
 	return b.client.KillSession(name)
 }
 
-func (b *Builder) StopAll() error {
+// StopAllOpts configures optional feedback for StopAll.
+type StopAllOpts struct {
+	// OnEmpty is called when there are no sessions (before returning nil).
+	OnEmpty func()
+	// OnSession is invoked before each session is killed, with 1-based index.
+	OnSession func(name string, index, total int)
+}
+
+func (b *Builder) StopAll(opts StopAllOpts) error {
 	sessions, err := b.client.ListSessions()
 	if err != nil {
 		return err
 	}
+	if len(sessions) == 0 {
+		if opts.OnEmpty != nil {
+			opts.OnEmpty()
+		}
+		return nil
+	}
+	total := len(sessions)
 	var errs []error
-	for _, s := range sessions {
+	for i, s := range sessions {
+		if opts.OnSession != nil {
+			opts.OnSession(s.Name, i+1, total)
+		}
 		errs = append(errs, b.client.KillSession(s.Name))
 	}
 	return errors.Join(errs...)

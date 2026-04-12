@@ -126,6 +126,30 @@ func TestRunSessions_Single(t *testing.T) {
 	if !mock.Called("NewSession") {
 		t.Error("expected NewSession to be called")
 	}
+	if strings.Contains(stderrStr(d), "Starting ") {
+		t.Errorf("single target should not emit batch progress; stderr = %q", stderrStr(d))
+	}
+}
+
+func TestRunSessions_BatchProgressOnStderr(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	for _, name := range []string{"alpha", "bravo"} {
+		_ = d.store.Save(name, &config.ProjectConfig{
+			Root:    d.global.ProjectDirs[0],
+			Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}},
+		})
+	}
+
+	err := runSessions(d, []string{"alpha", "bravo"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	out := stderrStr(d)
+	if !strings.Contains(out, "Starting alpha (1/2)") || !strings.Contains(out, "Starting bravo (2/2)") {
+		t.Errorf("stderr = %q, want progress lines for alpha and bravo", out)
+	}
 }
 
 func TestRunSessions_SkipsExisting(t *testing.T) {

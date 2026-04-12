@@ -107,4 +107,24 @@ func TestRunStopAllWith(t *testing.T) {
 	if kills != 2 {
 		t.Errorf("expected 2 KillSession calls, got %d", kills)
 	}
+
+	out := stderrStr(d)
+	if !strings.Contains(out, "Stopping a (1/2)") || !strings.Contains(out, "Stopping b (2/2)") {
+		t.Errorf("stderr = %q, want progress lines for a and b", out)
+	}
+}
+
+func TestRunStopAllWith_NoSessionsMessage(t *testing.T) {
+	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+	mock.ListSessionsReturn = []tmux.SessionInfo{}
+
+	if err := runStopAllWith(d); err != nil {
+		t.Fatalf("runStopAllWith: %v", err)
+	}
+
+	out := stderrStr(d)
+	if !strings.Contains(out, "No tmux sessions running") {
+		t.Errorf("stderr = %q, want empty-session message", out)
+	}
 }

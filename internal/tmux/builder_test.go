@@ -353,7 +353,7 @@ func TestStopAll(t *testing.T) {
 	}
 	builder := newTestBuilder(mock, nil)
 
-	err := builder.StopAll()
+	err := builder.StopAll(StopAllOpts{})
 	if err != nil {
 		t.Fatalf("StopAll returned error: %v", err)
 	}
@@ -361,6 +361,54 @@ func TestStopAll(t *testing.T) {
 	kills := callsFor(mock, "KillSession")
 	if len(kills) != 2 {
 		t.Fatalf("expected 2 KillSession calls, got %d", len(kills))
+	}
+}
+
+func TestStopAll_OnSessionOrderAndIndices(t *testing.T) {
+	mock := &MockClient{
+		ListSessionsReturn: []SessionInfo{
+			{Name: "a"},
+			{Name: "b"},
+		},
+	}
+	builder := newTestBuilder(mock, nil)
+
+	var seen []string
+	err := builder.StopAll(StopAllOpts{
+		OnSession: func(name string, index, total int) {
+			seen = append(seen, fmt.Sprintf("%s:%d/%d", name, index, total))
+		},
+	})
+	if err != nil {
+		t.Fatalf("StopAll: %v", err)
+	}
+	want := []string{"a:1/2", "b:2/2"}
+	if len(seen) != len(want) {
+		t.Fatalf("OnSession calls = %d, want %d: %v", len(seen), len(want), seen)
+	}
+	for i := range want {
+		if seen[i] != want[i] {
+			t.Errorf("OnSession[%d] = %q, want %q", i, seen[i], want[i])
+		}
+	}
+}
+
+func TestStopAll_OnEmpty(t *testing.T) {
+	mock := &MockClient{ListSessionsReturn: []SessionInfo{}}
+	builder := newTestBuilder(mock, nil)
+
+	var emptyCalls int
+	err := builder.StopAll(StopAllOpts{
+		OnEmpty: func() { emptyCalls++ },
+	})
+	if err != nil {
+		t.Fatalf("StopAll: %v", err)
+	}
+	if emptyCalls != 1 {
+		t.Errorf("OnEmpty calls = %d, want 1", emptyCalls)
+	}
+	if mock.Called("KillSession") {
+		t.Error("should not KillSession when list is empty")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Drew-Daniels/nux/internal/config"
+	"github.com/Drew-Daniels/nux/internal/tmux"
 	"github.com/spf13/cobra"
 )
 
@@ -66,5 +67,12 @@ func runStopAll(_ *cobra.Command, _ []string) error {
 }
 
 func runStopAllWith(d *deps) error {
-	return d.builder.StopAll()
+	return d.builder.StopAll(tmux.StopAllOpts{
+		OnEmpty: func() {
+			_, _ = fmt.Fprintln(d.stderr, "No tmux sessions running.")
+		},
+		OnSession: func(name string, index, total int) {
+			_, _ = fmt.Fprintf(d.stderr, "Stopping %s (%d/%d)...\n", name, index, total)
+		},
+	})
 }

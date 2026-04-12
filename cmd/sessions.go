@@ -26,10 +26,15 @@ func runSessions(d *deps, args []string) error {
 		return err
 	}
 
+	total := len(targets)
 	for i, arg := range targets {
 		result, err := d.resolver.Resolve(arg.Project)
 		if err != nil {
 			return err
+		}
+
+		if total > 1 {
+			_, _ = fmt.Fprintf(d.stderr, "Starting %s (%d/%d)...\n", result.Name, i+1, total)
 		}
 
 		cfg := effectiveConfig(d, result)
