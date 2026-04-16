@@ -329,6 +329,35 @@ func TestResolve_ZoxideDisabled(t *testing.T) {
 	}
 }
 
+func TestResolve_DirectoryBeatsZoxide(t *testing.T) {
+	projectsDir := t.TempDir()
+	blogDir := filepath.Join(projectsDir, "blog")
+	if err := os.Mkdir(blogDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	store := config.NewProjectStore(t.TempDir())
+	r := NewResolverWithStore(&config.GlobalConfig{
+		ProjectDirs: config.StringOrList{projectsDir},
+		Zoxide:      true,
+	}, store)
+	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
+	r = r.WithZoxideQuerier(func(_ string) (string, error) {
+		return "/home/test/blog", nil
+	})
+
+	result, err := r.Resolve("blog")
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if result.ConfigSource != "directory" {
+		t.Errorf("directory should take priority over zoxide, got %q", result.ConfigSource)
+	}
+	if result.Root != blogDir {
+		t.Errorf("Root = %q, want %q", result.Root, blogDir)
+	}
+}
+
 func TestResolve_ZoxideFallsThrough(t *testing.T) {
 	projectsDir := t.TempDir()
 	blogDir := filepath.Join(projectsDir, "blog")

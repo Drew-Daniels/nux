@@ -88,14 +88,14 @@ func (r *Resolver) Resolve(name string) (*Result, error) {
 		return nil, fmt.Errorf("loading project config: %w", err)
 	}
 
+	if result, err := r.resolveFromDirectory(name); err == nil {
+		return result, nil
+	}
+
 	if r.global.Zoxide {
 		if result, err := r.resolveFromZoxide(name); err == nil {
 			return result, nil
 		}
-	}
-
-	if result, err := r.resolveFromDirectory(name); err == nil {
-		return result, nil
 	}
 
 	return nil, fmt.Errorf("project not found: %s", name)
