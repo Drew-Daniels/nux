@@ -31,6 +31,7 @@ type options struct {
 	dryRun      bool
 	force       bool
 	deleteForce bool
+	copyForce   bool
 	configDir   string
 	projectDirs string
 	editorFunc  func() string
@@ -58,6 +59,7 @@ type deps struct {
 	noAttach    bool
 	force       bool
 	deleteForce bool
+	copyForce   bool
 	run         string
 	layout      string
 	panes       int
@@ -191,6 +193,7 @@ func setup() (*deps, error) {
 		noAttach:      opts.noAttach,
 		force:         opts.force,
 		deleteForce:   opts.deleteForce,
+		copyForce:     opts.copyForce,
 		run:           opts.run,
 		layout:        opts.layout,
 		panes:         opts.panes,

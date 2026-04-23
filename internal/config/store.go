@@ -14,6 +14,7 @@ const ProjectSchemaModeline = "# yaml-language-server: $schema=https://raw.githu
 // an injection seam for testing without filesystem access.
 type ProjectStore interface {
 	Load(name string) (*ProjectConfig, string, error)
+	LoadRaw(name string) ([]byte, string, error)
 	List() ([]ProjectInfo, error)
 	Save(name string, cfg *ProjectConfig) error
 	SaveRaw(name string, content []byte) error
@@ -36,6 +37,15 @@ func DefaultProjectStore() *DirProjectStore {
 
 func (s *DirProjectStore) Path(name string) string {
 	return filepath.Join(s.Dir, name+".yaml")
+}
+
+func (s *DirProjectStore) LoadRaw(name string) ([]byte, string, error) {
+	path := s.Path(name)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, path, err
+	}
+	return data, path, nil
 }
 
 func (s *DirProjectStore) Load(name string) (*ProjectConfig, string, error) {
