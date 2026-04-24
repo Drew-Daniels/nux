@@ -26,7 +26,7 @@ jobs:
           hugo version
       - run: hugo --minify
         working-directory: docs
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/public
       - id: deployment
