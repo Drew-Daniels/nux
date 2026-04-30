@@ -34,6 +34,7 @@ type options struct {
 	copyForce   bool
 	configDir   string
 	projectDirs string
+	dir         string
 	editorFunc  func() string
 }
 
@@ -63,6 +64,7 @@ type deps struct {
 	run         string
 	layout      string
 	panes       int
+	dir         string
 	editor      string
 	vars        map[string]string
 	stdin       io.Reader
@@ -137,6 +139,7 @@ func init() {
 	rootCmd.Flags().BoolVar(&opts.force, "force", false, "override nested session prevention")
 	rootCmd.Flags().StringVar(&opts.configDir, "config-dir", "", "override config directory path (global config and project configs)")
 	rootCmd.Flags().StringVar(&opts.projectDirs, "project-dirs", "", "override project directories path")
+	rootCmd.Flags().StringVarP(&opts.dir, "dir", "C", "", "session root directory (skips name-based resolution)")
 
 	restartCmd.Flags().AddFlag(rootCmd.Flag("no-attach"))
 	restartCmd.Flags().StringArrayVar(&opts.vars, "var", nil, "override a custom variable (key=value, repeatable)")
@@ -197,6 +200,7 @@ func setup() (*deps, error) {
 		run:           opts.run,
 		layout:        opts.layout,
 		panes:         opts.panes,
+		dir:           opts.dir,
 		editor:        editor,
 		vars:          parseVars(opts.vars, stderr),
 		stdin:         stdin,
@@ -228,7 +232,14 @@ func runRoot(_ *cobra.Command, args []string) error {
 	}
 	d.builder.SetAdHocLayout(adHocLayoutFromDeps(d))
 
-	if len(args) > 0 {
+	if d.dir != "" {
+		if len(args) == 0 {
+			return fmt.Errorf("--dir requires a session name")
+		}
+		if _, ok := matchSubcommand(args[0]); ok {
+			return fmt.Errorf("--dir cannot be combined with subcommands")
+		}
+	} else if len(args) > 0 {
 		if sub, ok := matchSubcommand(args[0]); ok {
 			return sub.RunE(sub, args[1:])
 		}

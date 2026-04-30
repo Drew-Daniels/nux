@@ -429,6 +429,69 @@ func TestCollectPickerItems_DedupesNormalizedNames(t *testing.T) {
 	}
 }
 
+func TestRunSessions_DirOverride(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.dir = t.TempDir()
+
+	err := runSessions(d, []string{"docs2"})
+	if err != nil {
+		t.Fatalf("runSessions: %v", err)
+	}
+
+	mock := d.client.(*tmux.MockClient)
+	if !mock.Called("NewSession") {
+		t.Fatal("expected NewSession to be called")
+	}
+	var got tmux.Call
+	for _, c := range mock.Calls {
+		if c.Method == "NewSession" {
+			got = c
+			break
+		}
+	}
+	if got.Args[0] != "docs2" {
+		t.Errorf("session name = %q, want docs2", got.Args[0])
+	}
+	if got.Args[1] != d.dir {
+		t.Errorf("session root = %q, want %q", got.Args[1], d.dir)
+	}
+}
+
+func TestRunSessions_DirOverride_RejectsExtraArgs(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.dir = t.TempDir()
+
+	err := runSessions(d, []string{"docs2", "blog"})
+	if err == nil {
+		t.Fatal("expected error for multiple args with --dir")
+	}
+}
+
+func TestRunSessions_DirOverride_RejectsBadDir(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.dir = "/nonexistent/path/should-not-exist-xyz"
+
+	err := runSessions(d, []string{"docs2"})
+	if err == nil {
+		t.Fatal("expected error for nonexistent --dir")
+	}
+}
+
+func TestRunSessions_DirOverride_RejectsSpecialSyntax(t *testing.T) {
+	d := testDeps(t)
+	d.noAttach = true
+	d.dir = t.TempDir()
+
+	for _, arg := range []string{"docs2:editor", "web+", "@work"} {
+		if err := runSessions(d, []string{arg}); err == nil {
+			t.Errorf("expected error for arg %q with --dir", arg)
+		}
+	}
+}
+
 func TestRunBareNux_AutoDetect(t *testing.T) {
 	d := testDeps(t)
 	d.noAttach = true

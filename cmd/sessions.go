@@ -17,6 +17,10 @@ func runSessions(d *deps, args []string) error {
 		_, _ = fmt.Fprintln(d.stderr, "warning: --var is ignored when using --run/-x")
 	}
 
+	if d.dir != "" {
+		return runWithDirOverride(d, args)
+	}
+
 	targets, err := expandArgs(d, args)
 	if err != nil {
 		return err
@@ -67,6 +71,45 @@ func runSessions(d *deps, args []string) error {
 		if !d.noAttach && isLast {
 			return d.client.AttachSession(result.Name)
 		}
+	}
+	return nil
+}
+
+func runWithDirOverride(d *deps, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("--dir requires exactly one session name")
+	}
+	name := args[0]
+	if strings.ContainsAny(name, ":+") || strings.HasPrefix(name, "@") {
+		return fmt.Errorf("--dir cannot be combined with :window, +glob, or @group syntax")
+	}
+
+	root := resolver.ResolveRoot(d.dir, "")
+	if !filepath.IsAbs(root) {
+		abs, err := filepath.Abs(root)
+		if err != nil {
+			return fmt.Errorf("resolving --dir: %w", err)
+		}
+		root = abs
+	}
+	info, err := d.checkStat(root)
+	if err != nil {
+		return fmt.Errorf("--dir not accessible: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("--dir is not a directory: %s", root)
+	}
+
+	result := &resolver.Result{
+		Name:         config.NormalizeSessionName(name),
+		Root:         root,
+		ConfigSource: "dir-override",
+	}
+	if err := buildIfAbsent(d, result); err != nil {
+		return err
+	}
+	if !d.noAttach {
+		return d.client.AttachSession(result.Name)
 	}
 	return nil
 }

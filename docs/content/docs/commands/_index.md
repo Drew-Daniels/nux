@@ -36,6 +36,7 @@ These flags apply to the root `nux` command (starting/attaching sessions):
 | `--run <command>` | `-x` | Run a command instead of using the project config. Combines with `--layout`/`--panes` and project names. |
 | `--layout <name>` | `-l` | Apply an ad-hoc tmux layout (`tiled`, `even-horizontal`, `even-vertical`, `main-horizontal`, `main-vertical`, or a custom layout string). |
 | `--panes <n>` | `-p` | Number of panes for the ad-hoc layout. Defaults to 2 if only `--layout` is given. |
+| `--dir <path>` | `-C` | Use the given directory as the session root instead of resolving the name. Lets you start a session in any directory under a custom name (e.g. `nux docs2 -C ~/docs`). |
 | `--no-attach` | | Start session(s) without attaching. Also available on `restart`. |
 | `--dry-run` | | Print the tmux commands nux would execute without actually running them. Still queries tmux for session state. |
 | `--force` | | Override the nested session guard. By default, nux refuses to start sessions from inside tmux. |
