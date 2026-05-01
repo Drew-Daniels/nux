@@ -12,6 +12,7 @@ type MockClient struct {
 	Calls []Call
 
 	HasSessionReturn    bool
+	HasSessionFunc      func(string) bool
 	ListSessionsReturn  []SessionInfo
 	ListSessionsError   error
 	IsInsideTmuxReturn  bool
@@ -35,6 +36,9 @@ func (m *MockClient) Called(method string) bool {
 
 func (m *MockClient) HasSession(name string) bool {
 	m.record("HasSession", nil, name)
+	if m.HasSessionFunc != nil {
+		return m.HasSessionFunc(name)
+	}
 	return m.HasSessionReturn
 }
 

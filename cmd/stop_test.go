@@ -62,6 +62,34 @@ func TestRunStopWith_NotRunning(t *testing.T) {
 	}
 }
 
+func TestRunStopWith_GlobSkipsNonRunning(t *testing.T) {
+	d := testDeps(t)
+	mock := d.client.(*tmux.MockClient)
+
+	_ = d.store.Save("openapi-pipeline", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
+	_ = d.store.Save("openapi-generator-testing", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "vim"}}}}})
+
+	running := map[string]bool{"openapi-pipeline": true}
+	mock.HasSessionFunc = func(name string) bool { return running[name] }
+
+	if err := runStopWith(d, []string{"openapi+"}); err != nil {
+		t.Fatalf("runStopWith: %v", err)
+	}
+
+	killed := 0
+	for _, c := range mock.Calls {
+		if c.Method == "KillSession" {
+			killed++
+			if c.Args[0] != "openapi-pipeline" {
+				t.Errorf("unexpected KillSession for %q", c.Args[0])
+			}
+		}
+	}
+	if killed != 1 {
+		t.Errorf("expected 1 KillSession call, got %d", killed)
+	}
+}
+
 func TestRunStopWith_ExpandError(t *testing.T) {
 	d := testDeps(t)
 	err := runStopWith(d, []string{"@missing"})

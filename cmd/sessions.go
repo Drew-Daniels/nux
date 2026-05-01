@@ -242,6 +242,15 @@ func expandArgs(d *deps, args []string) ([]sessionArg, error) {
 	return targets, nil
 }
 
+func containsGlobOrGroup(args []string) bool {
+	for _, a := range args {
+		if strings.Contains(a, "+") || strings.HasPrefix(a, "@") {
+			return true
+		}
+	}
+	return false
+}
+
 func tryAutoDetect(d *deps) (*resolver.Result, bool) {
 	cwd, _ := d.getwd()
 	for _, dir := range resolver.ResolveRoots(d.global.ProjectDirs) {

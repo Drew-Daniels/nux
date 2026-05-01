@@ -46,9 +46,13 @@ func runStopWith(d *deps, args []string) error {
 		return err
 	}
 
+	hasGlob := containsGlobOrGroup(args)
 	for _, arg := range targets {
 		normalized := config.NormalizeSessionName(arg.Project)
 		if !d.client.HasSession(normalized) {
+			if hasGlob {
+				continue
+			}
 			return fmt.Errorf("session %q is not running", arg.Project)
 		}
 		if err := d.builder.StopSession(normalized); err != nil {
