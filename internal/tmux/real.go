@@ -67,11 +67,11 @@ func (c *RealClient) runOutput(args ...string) (string, error) {
 
 func (c *RealClient) HasSession(name string) bool {
 	if c.DryRun {
-		_, _ = fmt.Fprintln(c.DryRunOut, "# check: tmux has-session -t "+name)
+		_, _ = fmt.Fprintln(c.DryRunOut, "# check: tmux has-session -t ="+name)
 	}
 	// Always query the live server so dry-run output accurately reflects
 	// whether the session would be created or just attached.
-	cmd := c.command("has-session", "-t", name)
+	cmd := c.command("has-session", "-t", "="+name)
 	return cmd.Run() == nil
 }
 
@@ -91,11 +91,11 @@ func (c *RealClient) NewSession(opts NewSessionOpts) error {
 }
 
 func (c *RealClient) KillSession(name string) error {
-	return c.run("kill-session", "-t", name)
+	return c.run("kill-session", "-t", "="+name)
 }
 
 func (c *RealClient) NewWindow(session string, opts NewWindowOpts) error {
-	args := []string{"new-window", "-t", session}
+	args := []string{"new-window", "-t", "=" + session}
 	if opts.Name != "" {
 		args = append(args, "-n", opts.Name)
 	}
@@ -106,11 +106,11 @@ func (c *RealClient) NewWindow(session string, opts NewWindowOpts) error {
 }
 
 func (c *RealClient) KillWindow(session, window string) error {
-	return c.run("kill-window", "-t", session+":"+window)
+	return c.run("kill-window", "-t", "="+session+":"+window)
 }
 
 func (c *RealClient) SplitWindow(session, window string, opts SplitWindowOpts) error {
-	args := []string{"split-window", "-t", session + ":" + window, "-v"}
+	args := []string{"split-window", "-t", "=" + session + ":" + window, "-v"}
 	if opts.Root != "" {
 		args = append(args, "-c", opts.Root)
 	}
@@ -118,40 +118,43 @@ func (c *RealClient) SplitWindow(session, window string, opts SplitWindowOpts) e
 }
 
 func (c *RealClient) SelectLayout(session, window, layout string) error {
-	return c.run("select-layout", "-t", session+":"+window, layout)
+	return c.run("select-layout", "-t", "="+session+":"+window, layout)
 }
 
 func (c *RealClient) SelectWindow(session, window string) error {
-	return c.run("select-window", "-t", session+":"+window)
+	return c.run("select-window", "-t", "="+session+":"+window)
 }
 
 func (c *RealClient) SelectPane(session, window string, pane int) error {
-	target := fmt.Sprintf("%s:%s.%d", session, window, pane)
+	target := fmt.Sprintf("=%s:%s.%d", session, window, pane)
 	return c.run("select-pane", "-t", target)
 }
 
 func (c *RealClient) SendKeys(target, keys string) error {
+	if !strings.HasPrefix(target, "=") {
+		target = "=" + target
+	}
 	return c.run("send-keys", "-t", target, keys, "Enter")
 }
 
 func (c *RealClient) AttachSession(name string) error {
 	if c.IsInsideTmux() {
-		return c.run("switch-client", "-t", name)
+		return c.run("switch-client", "-t", "="+name)
 	}
-	return c.run("attach-session", "-t", name)
+	return c.run("attach-session", "-t", "="+name)
 }
 
 func (c *RealClient) SetEnv(session, key, value string) error {
-	return c.run("set-environment", "-t", session, key, value)
+	return c.run("set-environment", "-t", "="+session, key, value)
 }
 
 func (c *RealClient) SetOption(session, key, value string) error {
-	return c.run("set-option", "-t", session, key, value)
+	return c.run("set-option", "-t", "="+session, key, value)
 }
 
 func (c *RealClient) SetHook(session, hookName, command string) error {
 	hook := fmt.Sprintf("run-shell '%s'", shellEscape(command))
-	return c.run("set-hook", "-t", session, hookName, hook)
+	return c.run("set-hook", "-t", "="+session, hookName, hook)
 }
 
 func (c *RealClient) ListSessions() ([]SessionInfo, error) {

@@ -90,7 +90,7 @@ func TestNewSession_DryRun_Minimal(t *testing.T) {
 func TestKillSession_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.KillSession("myproj")
-	if !strings.Contains(buf.String(), "kill-session -t myproj") {
+	if !strings.Contains(buf.String(), "kill-session -t =myproj") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -99,7 +99,7 @@ func TestNewWindow_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.NewWindow("sess", NewWindowOpts{Name: "editor", Root: "/tmp"})
 	out := buf.String()
-	if !strings.Contains(out, "new-window -t sess") {
+	if !strings.Contains(out, "new-window -t =sess") {
 		t.Errorf("got %q", out)
 	}
 	if !strings.Contains(out, "-n editor") {
@@ -122,7 +122,7 @@ func TestNewWindow_DryRun_Minimal(t *testing.T) {
 func TestKillWindow_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.KillWindow("sess", "editor")
-	if !strings.Contains(buf.String(), "kill-window -t sess:editor") {
+	if !strings.Contains(buf.String(), "kill-window -t =sess:editor") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -131,7 +131,7 @@ func TestSplitWindow_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SplitWindow("sess", "editor", SplitWindowOpts{Root: "/tmp"})
 	out := buf.String()
-	if !strings.Contains(out, "split-window -t sess:editor") {
+	if !strings.Contains(out, "split-window -t =sess:editor") {
 		t.Errorf("got %q", out)
 	}
 	if !strings.Contains(out, "-v") {
@@ -154,7 +154,7 @@ func TestSplitWindow_DryRun_NoRoot(t *testing.T) {
 func TestSelectLayout_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SelectLayout("sess", "editor", "tiled")
-	if !strings.Contains(buf.String(), "select-layout -t sess:editor tiled") {
+	if !strings.Contains(buf.String(), "select-layout -t =sess:editor tiled") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -162,7 +162,7 @@ func TestSelectLayout_DryRun(t *testing.T) {
 func TestSelectWindow_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SelectWindow("sess", "editor")
-	if !strings.Contains(buf.String(), "select-window -t sess:editor") {
+	if !strings.Contains(buf.String(), "select-window -t =sess:editor") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -170,7 +170,7 @@ func TestSelectWindow_DryRun(t *testing.T) {
 func TestSelectPane_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SelectPane("sess", "editor", 2)
-	if !strings.Contains(buf.String(), "select-pane -t sess:editor.2") {
+	if !strings.Contains(buf.String(), "select-pane -t =sess:editor.2") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -179,7 +179,7 @@ func TestSendKeys_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SendKeys("sess:editor", "vim")
 	out := buf.String()
-	if !strings.Contains(out, "send-keys -t sess:editor vim Enter") {
+	if !strings.Contains(out, "send-keys -t =sess:editor vim Enter") {
 		t.Errorf("got %q", out)
 	}
 }
@@ -188,7 +188,7 @@ func TestAttachSession_DryRun_OutsideTmux(t *testing.T) {
 	c, buf := dryClient()
 	c.LookupEnv = func(string) string { return "" }
 	_ = c.AttachSession("myproj")
-	if !strings.Contains(buf.String(), "attach-session -t myproj") {
+	if !strings.Contains(buf.String(), "attach-session -t =myproj") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -202,7 +202,7 @@ func TestAttachSession_DryRun_InsideTmux(t *testing.T) {
 		return ""
 	}
 	_ = c.AttachSession("myproj")
-	if !strings.Contains(buf.String(), "switch-client -t myproj") {
+	if !strings.Contains(buf.String(), "switch-client -t =myproj") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -210,7 +210,7 @@ func TestAttachSession_DryRun_InsideTmux(t *testing.T) {
 func TestSetEnv_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SetEnv("sess", "FOO", "bar")
-	if !strings.Contains(buf.String(), "set-environment -t sess FOO bar") {
+	if !strings.Contains(buf.String(), "set-environment -t =sess FOO bar") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -218,7 +218,7 @@ func TestSetEnv_DryRun(t *testing.T) {
 func TestSetOption_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SetOption("sess", "default-command", "/bin/zsh")
-	if !strings.Contains(buf.String(), "set-option -t sess default-command /bin/zsh") {
+	if !strings.Contains(buf.String(), "set-option -t =sess default-command /bin/zsh") {
 		t.Errorf("got %q", buf.String())
 	}
 }
@@ -227,7 +227,7 @@ func TestSetHook_DryRun(t *testing.T) {
 	c, buf := dryClient()
 	_ = c.SetHook("sess", "session-closed[0]", "echo bye")
 	out := buf.String()
-	if !strings.Contains(out, "set-hook -t sess session-closed[0]") {
+	if !strings.Contains(out, "set-hook -t =sess session-closed[0]") {
 		t.Errorf("got %q", out)
 	}
 	if !strings.Contains(out, "run-shell 'echo bye'") {
@@ -254,8 +254,8 @@ func TestHasSession_DryRun(t *testing.T) {
 	if !got {
 		t.Error("expected true when command succeeds")
 	}
-	if !strings.Contains(buf.String(), "has-session") {
-		t.Errorf("expected dry-run output, got %q", buf.String())
+	if !strings.Contains(buf.String(), "has-session -t =myproj") {
+		t.Errorf("expected dry-run output with exact match, got %q", buf.String())
 	}
 }
 
