@@ -163,7 +163,7 @@ func setup() (*deps, error) {
 		return nil, fmt.Errorf("loading global config: %w", err)
 	}
 	if opts.projectDirs != "" {
-		global.ProjectDirs = config.StringOrList{opts.projectDirs}
+		global.ProjectDirs = config.ProjectDirs{opts.projectDirs}
 	}
 
 	client := tmux.NewRealClient()

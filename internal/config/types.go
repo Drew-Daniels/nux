@@ -12,33 +12,34 @@ type GlobalConfig struct {
 	DefaultShell   string              `yaml:"default_shell,omitempty" json:"default_shell,omitempty" jsonschema:"description=Shell to set as tmux default-command for new sessions."`
 	PaneInit       []string            `yaml:"pane_init,omitempty" json:"pane_init,omitempty" jsonschema:"description=Commands run in every pane before pane-specific commands."`
 	DefaultSession *DefaultSession     `yaml:"default_session,omitempty" json:"default_session,omitempty" jsonschema:"description=Template used for projects without a config file. Accepts a layout string or full session definition."`
-	ProjectDirs    StringOrList        `yaml:"project_dirs,omitempty" json:"project_dirs,omitempty" jsonschema:"description=Directories for project discovery. A single string or a list of paths. Supports ~ expansion."`
+	ProjectDirs    ProjectDirs         `yaml:"project_dirs,omitempty" json:"project_dirs,omitempty" jsonschema:"description=Directories for project discovery. A single string or a list of paths. Supports ~ expansion."`
 	Picker         string              `yaml:"picker,omitempty" json:"picker,omitempty" jsonschema:"enum=fzf,enum=gum,description=Fuzzy finder backend for interactive session selection."`
 	PickerOnBare   bool                `yaml:"picker_on_bare,omitempty" json:"picker_on_bare,omitempty" jsonschema:"description=Open picker when nux is run with no arguments outside a project directory."`
 	Zoxide         bool                `yaml:"zoxide,omitempty" json:"zoxide,omitempty" jsonschema:"description=Use zoxide for directory discovery as a resolver fallback."`
 	Groups         map[string][]string `yaml:"groups,omitempty" json:"groups,omitempty" jsonschema:"description=Named groups of projects for batch operations (e.g. nux @work)."`
 }
 
-// StringOrList holds one or more strings. It unmarshals from either a single
-// YAML string or a list of strings, so config authors can write:
+// ProjectDirs is the project_dirs setting: one or more directory paths used
+// for project discovery. It unmarshals from either a single YAML string or a
+// list of strings, so config authors can write:
 //
 //	project_dirs: ~/projects
 //	# or
 //	project_dirs:
 //	  - ~/projects
 //	  - ~/work
-type StringOrList []string
+type ProjectDirs []string
 
-func (s *StringOrList) UnmarshalYAML(value *yaml.Node) error {
+func (p *ProjectDirs) UnmarshalYAML(value *yaml.Node) error {
 	if value.Kind == yaml.ScalarNode {
-		*s = StringOrList{value.Value}
+		*p = ProjectDirs{value.Value}
 		return nil
 	}
 	var list []string
 	if err := value.Decode(&list); err != nil {
 		return err
 	}
-	*s = list
+	*p = list
 	return nil
 }
 
@@ -52,7 +53,7 @@ func (g *GlobalConfig) FirstProjectDir() string {
 	return ""
 }
 
-func (StringOrList) JSONSchema() *jsonschema.Schema {
+func (ProjectDirs) JSONSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
 		OneOf: []*jsonschema.Schema{
 			{Type: "string", Description: "A single directory path."},

@@ -100,7 +100,7 @@ project_dirs:
 	if err != nil {
 		t.Fatalf("LoadGlobalFrom: %v", err)
 	}
-	want := StringOrList{"~/projects", "~/work", "~/docs"}
+	want := ProjectDirs{"~/projects", "~/work", "~/docs"}
 	if len(cfg.ProjectDirs) != len(want) {
 		t.Fatalf("ProjectDirs = %v, want %v", cfg.ProjectDirs, want)
 	}
@@ -112,7 +112,7 @@ project_dirs:
 }
 
 func TestFirstProjectDir(t *testing.T) {
-	cfg := &GlobalConfig{ProjectDirs: StringOrList{"~/a", "~/b"}}
+	cfg := &GlobalConfig{ProjectDirs: ProjectDirs{"~/a", "~/b"}}
 	if got := cfg.FirstProjectDir(); got != "~/a" {
 		t.Errorf("FirstProjectDir = %q, want ~/a", got)
 	}

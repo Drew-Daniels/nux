@@ -29,7 +29,7 @@ func testDeps(t *testing.T) *deps {
 	projectCfgDir := t.TempDir()
 	store := config.NewProjectStore(projectCfgDir)
 	global := &config.GlobalConfig{
-		ProjectDirs: config.StringOrList{t.TempDir()},
+		ProjectDirs: config.ProjectDirs{t.TempDir()},
 	}
 	client := &tmux.MockClient{}
 	builder := tmux.NewBuilder(client, global)

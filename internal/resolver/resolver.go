@@ -239,7 +239,7 @@ func ResolveRoot(root string, projectsDir string) string {
 }
 
 // ResolveRoots expands each dir with ~ and returns the absolute paths.
-func ResolveRoots(dirs config.StringOrList) []string {
+func ResolveRoots(dirs config.ProjectDirs) []string {
 	out := make([]string, len(dirs))
 	for i, d := range dirs {
 		out[i] = ResolveRoot(d, "")

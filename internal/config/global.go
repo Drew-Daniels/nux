@@ -39,7 +39,7 @@ func LoadGlobal() (*GlobalConfig, error) {
 
 func GlobalDefaults() *GlobalConfig {
 	return &GlobalConfig{
-		ProjectDirs:  StringOrList{"~/projects"},
+		ProjectDirs:  ProjectDirs{"~/projects"},
 		Picker:       "fzf",
 		PickerOnBare: false,
 		Zoxide:       false,

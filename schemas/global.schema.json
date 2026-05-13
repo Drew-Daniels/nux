@@ -34,7 +34,7 @@
           "description": "Template used for projects without a config file. Accepts a layout string or full session definition."
         },
         "project_dirs": {
-          "$ref": "#/$defs/StringOrList",
+          "$ref": "#/$defs/ProjectDirs",
           "description": "Directories for project discovery. A single string or a list of paths. Supports ~ expansion."
         },
         "picker": {
@@ -90,7 +90,7 @@
       ],
       "description": "Pane definition. A plain string is shorthand for {command: \u003cstring\u003e}."
     },
-    "StringOrList": {
+    "ProjectDirs": {
       "oneOf": [
         {
           "type": "string",

@@ -163,7 +163,7 @@ func TestValidateGlobal_Valid(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &GlobalConfig{
 		Picker:      "fzf",
-		ProjectDirs: StringOrList{dir},
+		ProjectDirs: ProjectDirs{dir},
 	}
 	errs, warnings := ValidateGlobal(cfg)
 	if len(errs) != 0 {
@@ -184,7 +184,7 @@ func TestValidateGlobal_InvalidPicker(t *testing.T) {
 }
 
 func TestValidateGlobal_EmptyProjectDir(t *testing.T) {
-	cfg := &GlobalConfig{ProjectDirs: StringOrList{"  "}}
+	cfg := &GlobalConfig{ProjectDirs: ProjectDirs{"  "}}
 	errs, _ := ValidateGlobal(cfg)
 	if len(errs) == 0 {
 		t.Fatal("expected error for empty project_dirs entry")
@@ -193,7 +193,7 @@ func TestValidateGlobal_EmptyProjectDir(t *testing.T) {
 }
 
 func TestValidateGlobal_MissingProjectDir(t *testing.T) {
-	cfg := &GlobalConfig{ProjectDirs: StringOrList{"/nonexistent/path"}}
+	cfg := &GlobalConfig{ProjectDirs: ProjectDirs{"/nonexistent/path"}}
 	_, warnings := ValidateGlobal(cfg)
 	if len(warnings) == 0 {
 		t.Fatal("expected warning for missing project dir")

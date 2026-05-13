@@ -186,7 +186,7 @@ func testResolver(t *testing.T, cfgs map[string]*config.ProjectConfig) *Resolver
 	projectsDir := t.TempDir()
 
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectDirs: config.StringOrList{projectsDir},
+		ProjectDirs: config.ProjectDirs{projectsDir},
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
 	r = r.WithDirChecker(func(path string) (os.FileInfo, error) {
@@ -260,7 +260,7 @@ func TestResolve_FromDirectory(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectDirs: config.StringOrList{projectsDir},
+		ProjectDirs: config.ProjectDirs{projectsDir},
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
 
@@ -289,7 +289,7 @@ func TestResolve_FromDirectory_MultipleProjectDirs(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectDirs: config.StringOrList{dir1, dir2},
+		ProjectDirs: config.ProjectDirs{dir1, dir2},
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
 
@@ -338,7 +338,7 @@ func TestResolve_DirectoryBeatsZoxide(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectDirs: config.StringOrList{projectsDir},
+		ProjectDirs: config.ProjectDirs{projectsDir},
 		Zoxide:      true,
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
@@ -367,7 +367,7 @@ func TestResolve_ZoxideFallsThrough(t *testing.T) {
 
 	store := config.NewProjectStore(t.TempDir())
 	r := NewResolverWithStore(&config.GlobalConfig{
-		ProjectDirs: config.StringOrList{projectsDir},
+		ProjectDirs: config.ProjectDirs{projectsDir},
 		Zoxide:      true,
 	}, store)
 	r = r.WithHomeDir(func() (string, error) { return "/home/test", nil })
@@ -410,7 +410,7 @@ func TestExpandGlob_MatchesProjectDirDirectories(t *testing.T) {
 	}
 
 	store := config.NewProjectStore(t.TempDir())
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{projectsDir}}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.ProjectDirs{projectsDir}}, store)
 
 	got, err := r.ExpandGlob("interop+", nil)
 	if err != nil {
@@ -436,7 +436,7 @@ func TestExpandGlob_DeduplicatesConfigAndDir(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("web-api", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{projectsDir}}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.ProjectDirs{projectsDir}}, store)
 
 	got, err := r.ExpandGlob("web+", nil)
 	if err != nil {
@@ -467,7 +467,7 @@ func TestExpandGlob_MultipleProjectDirs(t *testing.T) {
 	}
 
 	store := config.NewProjectStore(t.TempDir())
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{dir1, dir2}}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.ProjectDirs{dir1, dir2}}, store)
 
 	got, err := r.ExpandGlob("web+", nil)
 	if err != nil {
@@ -488,7 +488,7 @@ func TestExpandGlob_EmptyProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("alpha", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{""}}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.ProjectDirs{""}}, store)
 
 	got, err := r.ExpandGlob("alpha+", nil)
 	if err != nil {
@@ -503,7 +503,7 @@ func TestExpandGlob_MissingProjectDirs(t *testing.T) {
 	store := config.NewProjectStore(t.TempDir())
 	_ = store.Save("alpha", &config.ProjectConfig{Windows: []config.Window{{Name: "main", Panes: []config.Pane{{Command: "a"}}}}})
 
-	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.StringOrList{"/nonexistent/dir"}}, store)
+	r := NewResolverWithStore(&config.GlobalConfig{ProjectDirs: config.ProjectDirs{"/nonexistent/dir"}}, store)
 
 	got, err := r.ExpandGlob("alpha+", nil)
 	if err != nil {
