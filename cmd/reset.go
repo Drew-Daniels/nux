@@ -48,10 +48,7 @@ func runResetWith(d *deps) error {
 	cfgPath := filepath.Join(filepath.Dir(cfgDir), "config.yaml")
 
 	if _, err := d.checkStat(cfgPath); err != nil {
-		if os.IsNotExist(err) {
-			return fmt.Errorf("config not found: %s", cfgPath)
-		}
-		return fmt.Errorf("config: %w", err)
+		return fmt.Errorf("global config %s: %w", cfgPath, err)
 	}
 
 	projectsExist := false

@@ -18,7 +18,7 @@ This is a convenience shortcut - equivalent to running `$EDITOR ~/.config/nux/pr
 ## Errors
 
 - **`$EDITOR is not set`** - set the `EDITOR` environment variable in your shell profile (e.g. `export EDITOR=nvim`).
-- **`config not found: <path>`** - no config file exists for that project name. Use `nux new <name>` to create one first.
+- **`loading config <path>: ...`** - nux could not read or parse the project YAML (missing file, permissions, or invalid syntax). For a new project, use `nux new <name>` first.
 
 ## Examples
 

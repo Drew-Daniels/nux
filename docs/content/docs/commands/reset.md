@@ -24,7 +24,7 @@ Before anything is deleted, a summary of what will be removed and what will be k
 
 ## Behavior
 
-1. nux checks that `config.yaml` exists in the config directory.
+1. nux checks that the global `config.yaml` in the config directory exists and is accessible.
 2. A preview of what will be removed and what will be kept is printed.
 3. Unless `--force` is set, nux prompts for confirmation.
 4. The global config file is deleted.
@@ -34,7 +34,7 @@ Running tmux sessions are not affected by this command.
 
 ## Errors
 
-- **`config not found: <path>`** - no global config file exists.
+- **`global config <path>: ...`** - the global config file is missing, unreadable, or not a regular file (the message includes the underlying error).
 
 ## Examples
 

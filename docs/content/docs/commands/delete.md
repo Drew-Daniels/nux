@@ -28,14 +28,14 @@ Supports [glob patterns]({{< relref "/docs/guides/pattern-matching" >}}) with `+
 ## Behavior
 
 1. Arguments are expanded (patterns and groups resolved to individual names).
-2. For each target, nux checks that the config file exists.
+2. For each target, nux loads the config file (read and YAML parse).
 3. Unless `--force` is set, nux prompts: `Delete config for "<name>"? [y/N]`
 4. If confirmed, the file is deleted and nux prints `Deleted config for "<name>"`.
 5. If declined, nux prints `Cancelled.` and moves on to the next target.
 
 ## Errors
 
-- **`config not found: <path>`** - no config file exists for that project name.
+- **`loading config <path>: ...`** - nux could not read or parse the project YAML (missing file, permissions, or invalid syntax).
 
 ## Examples
 

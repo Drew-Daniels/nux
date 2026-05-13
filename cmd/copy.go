@@ -34,7 +34,7 @@ func runCopyWith(d *deps, args []string) error {
 
 	data, sourcePath, err := d.store.LoadRaw(source)
 	if err != nil {
-		return fmt.Errorf("config not found: %s", d.store.Path(source))
+		return fmt.Errorf("loading config %s: %w", sourcePath, err)
 	}
 
 	destPath := d.store.Path(dest)

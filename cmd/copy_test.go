@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -38,8 +39,11 @@ func TestRunCopyWith_SourceNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing source")
 	}
-	if !strings.Contains(err.Error(), "config not found") {
-		t.Errorf("error = %q, expected 'config not found'", err.Error())
+	if !strings.Contains(err.Error(), "loading config") {
+		t.Errorf("error = %q, expected 'loading config'", err.Error())
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected wrapped os.ErrNotExist, got %v", err)
 	}
 }
 

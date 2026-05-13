@@ -118,7 +118,7 @@ func marshalShowResolvedYAML(d *deps, name string) ([]byte, error) {
 func marshalShowRawYAML(d *deps, name string) ([]byte, error) {
 	cfg, cfgPath, err := d.store.Load(name)
 	if err != nil {
-		return nil, fmt.Errorf("config not found: %s", d.store.Path(name))
+		return nil, fmt.Errorf("loading config %s: %w", d.store.Path(name), err)
 	}
 
 	out := showOutput{

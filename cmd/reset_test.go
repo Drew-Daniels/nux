@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,7 +147,10 @@ func TestRunResetWith_ConfigMissing(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing config")
 	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("error = %q, expected 'not found'", err.Error())
+	if !strings.Contains(err.Error(), "global config") {
+		t.Errorf("error = %q, expected 'global config'", err.Error())
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected wrapped os.ErrNotExist, got %v", err)
 	}
 }

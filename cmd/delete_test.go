@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -70,7 +72,10 @@ func TestRunDeleteWith_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing config")
 	}
-	if !strings.Contains(err.Error(), "not found") {
-		t.Errorf("error = %q, expected 'not found'", err.Error())
+	if !strings.Contains(err.Error(), "loading config") {
+		t.Errorf("error = %q, expected 'loading config'", err.Error())
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("expected wrapped os.ErrNotExist, got %v", err)
 	}
 }

@@ -45,7 +45,7 @@ func runDeleteWith(d *deps, args []string) error {
 		path := d.store.Path(name)
 
 		if _, _, err := d.store.Load(name); err != nil {
-			return fmt.Errorf("config not found: %s", path)
+			return fmt.Errorf("loading config %s: %w", path, err)
 		}
 
 		if !d.deleteForce {
